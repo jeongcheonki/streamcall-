@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>StreamCall — 영상통화</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -48,6 +50,32 @@ input[type=text]:focus{border-color:var(--accent);}
 .status-msg{font-size:13px;color:var(--text2);text-align:center;min-height:18px;}
 .status-msg.error{color:#f55;}
 .status-msg.ok{color:var(--green);}
+
+/* ── 대기자 목록 ── */
+.waitlist-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.waitlist-header{padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--border);}
+.waitlist-title{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:7px;}
+.online-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:p 2s infinite;}
+.waitlist-count{background:rgba(79,142,247,.15);color:var(--accent);border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700;}
+.waitlist-refresh{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px 6px;border-radius:6px;transition:.15s;display:flex;align-items:center;gap:4px;font-size:12px;}
+.waitlist-refresh:hover{color:var(--text);background:var(--bg3);}
+.waitlist-refresh svg{transition:transform .6s;}
+.waitlist-refresh.spin svg{transform:rotate(360deg);}
+.waitlist-list{max-height:240px;overflow-y:auto;}
+.waitlist-list::-webkit-scrollbar{width:3px;}
+.waitlist-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.waitlist-row{display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:0.5px solid var(--border);transition:background .15s;}
+.waitlist-row:last-child{border-bottom:none;}
+.waitlist-row:hover{background:var(--bg3);}
+.waitlist-row.is-me{opacity:.5;pointer-events:none;}
+.w-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;}
+.w-info{flex:1;min-width:0;}
+.w-name{font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.w-id{font-size:11px;color:var(--text3);font-family:monospace;margin-top:1px;}
+.w-call-btn{padding:5px 13px;border-radius:7px;border:0.5px solid var(--accent);background:rgba(79,142,247,.1);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s;}
+.w-call-btn:hover{background:var(--accent);color:#fff;}
+.waitlist-empty{padding:28px 16px;text-align:center;color:var(--text3);font-size:13px;line-height:1.7;}
+.waitlist-empty svg{display:block;margin:0 auto 10px;width:28px;opacity:.25;}
 
 /* ── CALL SCREEN ── */
 #call-screen{display:none;height:100vh;overflow:hidden;}
@@ -286,6 +314,28 @@ input[type=text]:focus{border-color:var(--accent);}
       <p class="status-msg" id="lobby-status">준비 중...</p>
       <button class="btn-primary" id="ready-btn" onclick="goReady()" disabled>입장하기</button>
     </div>
+
+    <!-- 대기자 목록 -->
+    <div class="waitlist-card">
+      <div class="waitlist-header">
+        <div class="waitlist-title">
+          <span class="online-dot"></span>
+          대기 중인 사용자
+          <span class="waitlist-count" id="waitlist-count">0명</span>
+        </div>
+        <button class="waitlist-refresh" id="refresh-btn" onclick="refreshWaitlist()">
+          <svg class="ic" width="13" height="13" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+          새로고침
+        </button>
+      </div>
+      <div class="waitlist-list" id="waitlist-list">
+        <div class="waitlist-empty" id="waitlist-empty">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          아직 대기 중인 사용자가 없습니다.<br>입장하기 버튼을 눌러 대기자 목록에 등록하세요.
+        </div>
+      </div>
+    </div>
+
     <div class="divider">내 통화 ID</div>
     <div class="id-box">
       <div>
@@ -296,7 +346,7 @@ input[type=text]:focus{border-color:var(--accent);}
     </div>
     <div class="card">
       <div>
-        <label>상대방 ID로 전화 걸기</label>
+        <label>또는 ID를 직접 입력해서 전화 걸기</label>
         <input type="text" id="peer-id-input" placeholder="상대방 ID 입력 (예: 1234)" autocomplete="off" onkeydown="if(event.key==='Enter')callPeer()"/>
       </div>
       <button class="btn-primary" id="call-btn" onclick="callPeer()" disabled>📞 &nbsp;전화 걸기</button>
@@ -499,6 +549,26 @@ input[type=text]:focus{border-color:var(--accent);}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── Firebase 설정 (무료 공개 DB — StreamCall 전용) ──
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBtecF8MQ6bSll3mm07hYH-rk06y8VI2fw",
+  authDomain: "streamcall-244a9.firebaseapp.com",
+  databaseURL: "https://streamcall-244a9-default-rtdb.firebaseio.com",
+  projectId: "streamcall-244a9",
+  storageBucket: "streamcall-244a9.firebasestorage.app",
+  messagingSenderId: "911272393065",
+  appId: "1:911272393065:web:7673c288b0b8a492a3e5f8"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
 // ── State ──
 let peer=null,localStream=null,currentCall=null,pendingCall=null,dataConn=null;
 let remotePeerId='',micEnabled=true,camEnabled=true,sharing=false,screenStream=null;
@@ -506,6 +576,88 @@ let timerInterval=null,elapsed=0,facingMode='user';
 let preCamOn=false,preMicOn=false,preStream=null;
 let panelOpen=false,currentTab='chat',unreadCount=0;
 let myName='익명';
+
+// ── 대기자 목록 (Firebase Realtime DB) ──
+let fbApp=null, fbDb=null, myWaitRef=null, waitlistRef=null, isInWaitlist=false;
+
+const AVATAR_COLORS=['#4f8ef7','#7c5af5','#2ed573','#f7a94f','#ff4757','#fd79a8','#a29bfe','#00cec9'];
+function avatarColor(id){let h=0;for(let c of String(id))h=(h+c.charCodeAt(0))%AVATAR_COLORS.length;return AVATAR_COLORS[h];}
+
+function initFirebase(){
+  try{
+    fbApp = firebase.initializeApp(FB_CONFIG);
+    fbDb  = firebase.database();
+    waitlistRef = fbDb.ref('waitlist');
+    // 실시간 목록 수신
+    waitlistRef.on('value', snap => {
+      const data = snap.val() || {};
+      renderWaitlist(data);
+    });
+  } catch(e){
+    console.warn('Firebase 초기화 실패:', e);
+    // Firebase 없어도 나머지 기능은 동작
+  }
+}
+
+function joinWaitlist(){
+  if(!peer?.id || !fbDb) return;
+  if(isInWaitlist) return;
+  const name = document.getElementById('my-name').value.trim() || '익명';
+  myWaitRef = fbDb.ref('waitlist/' + peer.id);
+  myWaitRef.set({ name, id: peer.id, joinedAt: Date.now() });
+  // 탭 닫히면 자동 삭제 (onDisconnect)
+  myWaitRef.onDisconnect().remove();
+  isInWaitlist = true;
+}
+
+function leaveWaitlist(){
+  if(myWaitRef){ myWaitRef.remove(); myWaitRef=null; }
+  isInWaitlist = false;
+}
+
+function renderWaitlist(data){
+  const list  = document.getElementById('waitlist-list');
+  const empty = document.getElementById('waitlist-empty');
+  const myId  = peer?.id;
+  const entries = Object.values(data).sort((a,b)=>a.joinedAt-b.joinedAt);
+  const others  = entries.filter(u => u.id !== myId);
+
+  document.getElementById('waitlist-count').textContent = others.length + '명';
+  Array.from(list.children).forEach(c=>{ if(c!==empty) c.remove(); });
+
+  if(entries.length === 0){ empty.style.display='block'; return; }
+  empty.style.display = 'none';
+
+  entries.forEach(u => {
+    const isMe = u.id === myId;
+    const row  = document.createElement('div');
+    row.className = 'waitlist-row' + (isMe ? ' is-me' : '');
+    const color = avatarColor(u.id);
+    const init  = (u.name||u.id).charAt(0).toUpperCase();
+    row.innerHTML = `
+      <div class="w-avatar" style="background:${color}22;color:${color}">${init}</div>
+      <div class="w-info">
+        <div class="w-name">${escHtml(u.name||u.id)}${isMe?' <span style="font-size:11px;color:var(--text3)">(나)</span>':''}</div>
+        <div class="w-id">ID: ${u.id}</div>
+      </div>
+      ${!isMe ? `<button class="w-call-btn" onclick="callUserById('${u.id}')">📞 전화</button>` : ''}
+    `;
+    list.insertBefore(row, empty);
+  });
+}
+
+function callUserById(id){
+  document.getElementById('peer-id-input').value = id;
+  callPeer();
+}
+
+function refreshWaitlist(){
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spin');
+  if(waitlistRef) waitlistRef.once('value', snap=>renderWaitlist(snap.val()||{}));
+  setTimeout(()=>btn.classList.remove('spin'), 600);
+  showToast('목록 새로고침');
+}
 
 // ── PeerJS ──
 function initPeer(){
@@ -582,7 +734,12 @@ async function getLocalStream(){
 function goReady(){
   myName=document.getElementById('my-name').value.trim()||'익명';
   document.getElementById('my-name').value=myName;
-  showToast('✅ 준비 완료!');
+  joinWaitlist();
+  document.getElementById('ready-btn').textContent='✅ 대기 중';
+  document.getElementById('ready-btn').style.background='rgba(46,213,115,.2)';
+  document.getElementById('ready-btn').style.color='#2ed573';
+  document.getElementById('ready-btn').style.border='1px solid rgba(46,213,115,.35)';
+  showToast('✅ 대기자 목록에 등록되었습니다!');
 }
 async function callPeer(){
   const peerId=document.getElementById('peer-id-input').value.trim();
@@ -638,6 +795,7 @@ function rejectCall(){
   showToast('통화를 거절했습니다');
 }
 function enterCallScreen(stream){
+  leaveWaitlist();
   if(preStream){preStream.getTracks().forEach(t=>t.stop());preStream=null;}
   document.getElementById('local-vid').srcObject=stream;
   document.getElementById('lobby').style.display='none';
@@ -716,6 +874,8 @@ function endCallCleanup(){
   document.getElementById('timer-badge').textContent='00:00';
   document.getElementById('chat-messages').innerHTML='<div class="msg-system">채팅이 시작되었습니다</div>';
   closePanel(); unreadCount=0; updateUnreadBadge();
+  // 통화 끝나면 대기자 목록 재등록
+  joinWaitlist();
 }
 
 // ── Timer ──
@@ -1263,7 +1423,9 @@ function handleQuizData(data) {
 
 // ── Boot ──
 setLobbyStatus('서버에 연결 중...','');
+initFirebase();
 initPeer();
+window.addEventListener('beforeunload', leaveWaitlist);
 </script>
 </body>
 </html>
