@@ -549,18 +549,16 @@ input[type=text]:focus{border-color:var(--accent);}
 <div class="toast" id="toast"></div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBtecF8MQ6bSll3mm07hYH-rk06y8VI2fw",
-  authDomain: "streamcall-244a9.firebaseapp.com",
-  databaseURL: "https://streamcall-244a9-default-rtdb.firebaseio.com",
-  projectId: "streamcall-244a9",
-  storageBucket: "streamcall-244a9.firebasestorage.app",
-  messagingSenderId: "911272393065",
-  appId: "1:911272393065:web:7673c288b0b8a492a3e5f8"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// ── Firebase 설정 (무료 공개 DB — StreamCall 전용) ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyBtecF8MQ6bSll3mm07hYH-rk06y8VI2fw",
+    authDomain: "streamcall-244a9.firebaseapp.com",
+    databaseURL: "https://streamcall-244a9-default-rtdb.firebaseio.com",
+    projectId: "streamcall-244a9",
+    storageBucket: "streamcall-244a9.firebasestorage.app",
+    messagingSenderId: "911272393065",
+    appId: "1:911272393065:web:7673c288b0b8a492a3e5f8"
+  };
 
 // ── State ──
 let peer=null,localStream=null,currentCall=null,pendingCall=null,dataConn=null;
