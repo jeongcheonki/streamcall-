@@ -556,185 +556,154 @@ let panelOpen=false,currentTab='chat',unreadCount=0;
 let myName='익명';
 
 // ── Online Users Presence ──
-// 방식: 고정 허브 ID(streamcall-hub-0 등)를 선점 시도
-// 선점 성공 → 내가 허브 역할, 실패 → 허브에 연결해서 목록 수신
-const HUB_IDS = ['streamcall-hub-0','streamcall-hub-1','streamcall-hub-2'];
-let onlineUsers = {};       // { peerId: { name, joinedAt, lastSeen } }
-let presenceConns = {};     // peerId → DataConnection (presence 전용)
-let hubPeer = null;         // 허브 역할일 때 사용하는 별도 Peer
+// 방식: 고정 허브 ID를 선점 시도 → 성공하면 허브, 실패하면 클라이언트로 연결
+// Hub ID는 충분히 고유하게 설정 (공개 PeerJS 서버 충돌 방지)
+const APP_KEY = 'scall2026';
+const HUB_IDS = [APP_KEY+'-hub-0', APP_KEY+'-hub-1', APP_KEY+'-hub-2'];
+let onlineUsers = {};
+let presenceConns = {};
+let hubPeer = null;
 let isHub = false;
 let myHubId = null;
 let presencePingInterval = null;
-let hubClients = {};        // 허브가 관리하는 클라이언트 연결들
+let hubClients = {};
+let myPeerIdGlobal = null;
 
 function initPresence(myPeerId) {
-  onlineUsers[myPeerId] = { name: myName || '익명', joinedAt: Date.now(), lastSeen: Date.now() };
+  myPeerIdGlobal = myPeerId;
+  onlineUsers[myPeerId] = { name: document.getElementById('my-name').value.trim() || '익명', joinedAt: Date.now(), lastSeen: Date.now() };
   renderOnlineList();
   tryBecomeHub(0, myPeerId);
 }
 
 function tryBecomeHub(idx, myPeerId) {
   if (idx >= HUB_IDS.length) {
-    // 모든 허브 선점 실패 → 허브에 연결자로 접속
     connectToHub(myPeerId);
     return;
   }
   const hubId = HUB_IDS[idx];
   const tryPeer = new Peer(hubId, {
     host:'0.peerjs.com', port:443, path:'/', secure:true,
-    config:{ iceServers:[{urls:'stun:stun.l.google.com:19302'}] }
+    config:{ iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}] }
   });
+  let resolved = false;
   tryPeer.on('open', () => {
-    // 허브 선점 성공!
-    isHub = true;
-    myHubId = hubId;
-    hubPeer = tryPeer;
-    console.log('[Presence] 허브 선점:', hubId);
+    resolved = true;
+    isHub = true; myHubId = hubId; hubPeer = tryPeer;
     showToast('🎉 허브성공당!');
     setLobbyStatus('🎉 허브성공당! — 다른 사용자를 기다리는 중', 'ok');
     setupHubRole(tryPeer, myPeerId);
   });
   tryPeer.on('error', err => {
-    tryPeer.destroy();
+    if (resolved) return;
+    resolved = true;
+    try { tryPeer.destroy(); } catch(e) {}
     if (err.type === 'unavailable-id') {
-      // 이미 누가 쓰고 있음 → 다음 허브 시도
       tryBecomeHub(idx + 1, myPeerId);
     } else {
-      // 네트워크 오류 등 → 그냥 허브에 연결 시도
+      // 네트워크 오류 → 허브에 클라이언트로 연결
       connectToHub(myPeerId);
     }
   });
+  // 5초 안에 응답 없으면 다음 시도
+  setTimeout(() => {
+    if (!resolved) { resolved = true; try { tryPeer.destroy(); } catch(e) {} tryBecomeHub(idx + 1, myPeerId); }
+  }, 5000);
 }
 
 function setupHubRole(hubPeerObj, myPeerId) {
-  // 허브: 접속하는 클라이언트들의 연결을 받아서 목록 배포
   hubPeerObj.on('connection', conn => {
     const clientId = conn.peer;
     hubClients[clientId] = conn;
     conn.on('open', () => {
-      // 신규 클라이언트에게 현재 전체 목록 전송
       conn.send({ type: 'hub-list', users: onlineUsers });
     });
     conn.on('data', d => {
       if (d.type === 'presence-hello') {
-        onlineUsers[clientId] = { name: d.name, joinedAt: Date.now(), lastSeen: Date.now() };
-        renderOnlineList();
-        // 모든 클라이언트에게 목록 업데이트 브로드캐스트
+        onlineUsers[clientId] = { name: d.name || clientId, joinedAt: Date.now(), lastSeen: Date.now() };
         broadcastHubList();
       } else if (d.type === 'presence-ping') {
-        if (onlineUsers[clientId]) onlineUsers[clientId].lastSeen = Date.now();
+        if (onlineUsers[clientId]) { onlineUsers[clientId].lastSeen = Date.now(); onlineUsers[clientId].name = d.name || onlineUsers[clientId].name; }
+        else onlineUsers[clientId] = { name: d.name || clientId, joinedAt: Date.now(), lastSeen: Date.now() };
         broadcastHubList();
       } else if (d.type === 'presence-bye') {
-        delete onlineUsers[clientId];
-        delete hubClients[clientId];
-        renderOnlineList();
+        delete onlineUsers[clientId]; delete hubClients[clientId];
         broadcastHubList();
       }
     });
-    conn.on('close', () => {
-      delete onlineUsers[clientId];
-      delete hubClients[clientId];
-      renderOnlineList();
-      broadcastHubList();
-    });
-    conn.on('error', () => {
-      delete hubClients[clientId];
-    });
+    conn.on('close', () => { delete onlineUsers[clientId]; delete hubClients[clientId]; broadcastHubList(); });
+    conn.on('error', () => { delete hubClients[clientId]; });
   });
-  // 허브 자신도 핑 유지
   presencePingInterval = setInterval(() => {
-    onlineUsers[myPeerId] = { ...onlineUsers[myPeerId], lastSeen: Date.now(),
-      name: document.getElementById('my-name').value.trim() || '익명' };
+    const n = document.getElementById('my-name').value.trim() || '익명';
+    onlineUsers[myPeerId] = { ...onlineUsers[myPeerId], lastSeen: Date.now(), name: n };
     broadcastHubList();
-  }, 6000);
+  }, 5000);
 }
 
 function broadcastHubList() {
   const msg = { type: 'hub-list', users: onlineUsers };
-  Object.values(hubClients).forEach(conn => { if (conn.open) conn.send(msg); });
+  Object.values(hubClients).forEach(conn => { try { if (conn.open) conn.send(msg); } catch(e) {} });
   renderOnlineList();
 }
 
 function connectToHub(myPeerId) {
-  // 허브들 중 하나에 연결 시도
   tryConnectHub(0, myPeerId);
 }
 
 function tryConnectHub(idx, myPeerId) {
   if (idx >= HUB_IDS.length) {
-    console.warn('[Presence] 모든 허브 연결 실패');
-    // 잠시 후 재시도
-    setTimeout(() => connectToHub(myPeerId), 5000);
+    // 모든 허브 연결 실패 → 5초 후 처음부터 재시도 (허브가 곧 생길 수 있음)
+    setLobbyStatus('허브 연결 재시도 중...', '');
+    setTimeout(() => tryBecomeHub(0, myPeerId), 5000);
     return;
   }
   const hubId = HUB_IDS[idx];
-  const conn = peer.connect(hubId, {
-    label: 'presence',
-    metadata: { presence: true, name: myName || '익명' }
-  });
   let opened = false;
+  let conn;
+  try {
+    conn = peer.connect(hubId, { label: 'presence', metadata: { presence: true } });
+  } catch(e) { tryConnectHub(idx + 1, myPeerId); return; }
+
   conn.on('open', () => {
     opened = true;
-    console.log('[Presence] 허브 연결 성공:', hubId);
     presenceConns[hubId] = conn;
-    // 내 정보 전송
-    conn.send({ type: 'presence-hello', name: document.getElementById('my-name').value.trim() || '익명' });
-    // 주기적 핑
+    setLobbyStatus('준비 완료 — ID를 상대방에게 공유하세요', 'ok');
+    const name = document.getElementById('my-name').value.trim() || '익명';
+    conn.send({ type: 'presence-hello', name });
+    clearInterval(presencePingInterval);
     presencePingInterval = setInterval(() => {
-      if (conn.open) conn.send({ type: 'presence-ping', name: document.getElementById('my-name').value.trim() || '익명' });
-    }, 6000);
+      if (conn.open) {
+        const n = document.getElementById('my-name').value.trim() || '익명';
+        conn.send({ type: 'presence-ping', name: n });
+      }
+    }, 5000);
   });
   conn.on('data', d => {
     if (d.type === 'hub-list') {
+      // 내 정보는 로컬에서 유지
+      const me = onlineUsers[myPeerId];
       onlineUsers = d.users || {};
+      if (me) onlineUsers[myPeerId] = me;
       renderOnlineList();
     }
   });
   conn.on('close', () => {
     delete presenceConns[hubId];
     clearInterval(presencePingInterval);
-    // 연결 끊기면 다른 허브 시도
-    setTimeout(() => connectToHub(myPeerId), 3000);
+    setLobbyStatus('허브 연결 끊김, 재연결 중...', '');
+    // 허브가 사라졌을 수 있으니 허브 선점 재시도
+    setTimeout(() => tryBecomeHub(0, myPeerId), 3000);
   });
   conn.on('error', () => {
-    if (!opened) tryConnectHub(idx + 1, myPeerId);
+    if (!opened) {
+      setTimeout(() => tryConnectHub(idx + 1, myPeerId), 500);
+    }
   });
-  // 2초 안에 안 열리면 다음 허브
-  setTimeout(() => { if (!opened) { conn.close(); tryConnectHub(idx + 1, myPeerId); } }, 2000);
-}
-
-function setupPresenceConn(conn) {
-  // 허브가 받는 일반 presence 연결은 setupHubRole에서 처리
-  // 여기서는 무시 (중복 방지)
-}
-
-function removeOnlineUser(id) {
-  delete onlineUsers[id];
-  renderOnlineList();
-}
-
-function broadcastBye() {
-  if (isHub) {
-    delete onlineUsers[peer?.id];
-    broadcastHubList();
-    if (hubPeer) hubPeer.destroy();
-  } else {
-    Object.values(presenceConns).forEach(conn => {
-      if (conn.open) try { conn.send({ type: 'presence-bye' }); } catch(e) {}
-    });
-  }
-}
-
-function broadcastPresence() {
-  const name = document.getElementById('my-name').value.trim() || '익명';
-  if (isHub) {
-    onlineUsers[peer.id] = { ...onlineUsers[peer.id], name, lastSeen: Date.now() };
-    broadcastHubList();
-  } else {
-    Object.values(presenceConns).forEach(conn => {
-      if (conn.open) conn.send({ type: 'presence-ping', name });
-    });
-  }
+  // 4초 안에 연결 안 되면 다음 허브
+  setTimeout(() => {
+    if (!opened) { try { conn.close(); } catch(e) {} tryConnectHub(idx + 1, myPeerId); }
+  }, 4000);
 }
 
 const AVATAR_COLORS = ['#4f8ef7','#7c5af5','#2ed573','#f7a94f','#ff4757','#fd79a8','#a29bfe','#00cec9'];
@@ -781,6 +750,33 @@ function refreshOnlineUsers() {
   broadcastPresence();
   setTimeout(() => btn.classList.remove('spinning'), 700);
   showToast('목록 새로고침 중...');
+}
+
+function setupPresenceConn(conn) { /* 허브일 때 setupHubRole에서 처리 */ }
+function removeOnlineUser(id) { delete onlineUsers[id]; renderOnlineList(); }
+
+function broadcastBye() {
+  if (isHub) {
+    delete onlineUsers[peer?.id];
+    broadcastHubList();
+    try { if (hubPeer) hubPeer.destroy(); } catch(e) {}
+  } else {
+    Object.values(presenceConns).forEach(conn => {
+      try { if (conn.open) conn.send({ type: 'presence-bye' }); } catch(e) {}
+    });
+  }
+}
+
+function broadcastPresence() {
+  const name = document.getElementById('my-name').value.trim() || '익명';
+  if (isHub) {
+    if (peer?.id) onlineUsers[peer.id] = { ...onlineUsers[peer.id], name, lastSeen: Date.now() };
+    broadcastHubList();
+  } else {
+    Object.values(presenceConns).forEach(conn => {
+      try { if (conn.open) conn.send({ type: 'presence-ping', name }); } catch(e) {}
+    });
+  }
 }
 
 // ── PeerJS ──
