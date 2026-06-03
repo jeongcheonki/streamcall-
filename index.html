@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StreamCall — 영상통화</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d0d10;--bg2:#16161c;--bg3:#1e1e26;
+  --border:rgba(255,255,255,0.09);
+  --text:#f0f0f0;--text2:rgba(255,255,255,0.5);--text3:rgba(255,255,255,0.25);
+  --accent:#4f8ef7;--accent2:#7c5af5;--danger:#e02;--green:#2ed573;--radius:12px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,'Noto Sans KR',sans-serif;}
+svg.ic{display:inline-block;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ── LOBBY ── */
+#lobby{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.lobby-wrap{width:100%;max-width:440px;display:flex;flex-direction:column;gap:1.5rem;}
+.logo{display:flex;align-items:center;gap:12px;justify-content:center;}
+.logo-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:22px;}
+.logo-text{font-size:22px;font-weight:600;letter-spacing:-.5px;}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.5rem;display:flex;flex-direction:column;gap:1rem;}
+label{font-size:13px;color:var(--text2);display:block;margin-bottom:6px;}
+input[type=text]{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;padding:10px 14px;outline:none;transition:border-color .2s;}
+input[type=text]:focus{border-color:var(--accent);}
+.preview-box{width:100%;aspect-ratio:16/9;background:#111;border-radius:8px;overflow:hidden;position:relative;}
+.preview-box video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;}
+.preview-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:13px;}
+.preview-placeholder svg{width:32px;opacity:.4;}
+.btn-row{display:flex;gap:8px;}
+.btn-toggle{flex:1;padding:9px;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);color:var(--text2);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s;}
+.btn-toggle:hover{background:var(--bg3);color:var(--text);}
+.btn-toggle.on{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.1);}
+.btn-primary{width:100%;padding:12px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:.2s;}
+.btn-primary:hover{filter:brightness(1.1);}
+.btn-primary:active{transform:scale(.98);}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.divider{display:flex;align-items:center;gap:10px;color:var(--text3);font-size:12px;}
+.divider::before,.divider::after{content:'';flex:1;height:0.5px;background:var(--border);}
+.id-box{background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.id-label{font-size:12px;color:var(--text3);margin-bottom:2px;}
+.id-value{font-size:16px;font-weight:600;font-family:monospace;letter-spacing:2px;color:var(--accent);}
+.copy-btn{background:none;border:0.5px solid var(--border);border-radius:6px;color:var(--text2);padding:5px 10px;font-size:12px;cursor:pointer;transition:.15s;}
+.copy-btn:hover{background:var(--bg3);color:var(--text);}
+.status-msg{font-size:13px;color:var(--text2);text-align:center;min-height:18px;}
+.status-msg.error{color:#f55;}
+.status-msg.ok{color:var(--green);}
+
+/* ── Online users list ── */
+.online-list-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.online-list-header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--border);}
+.online-list-title{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;}
+.online-count-badge{background:rgba(79,142,247,.15);color:var(--accent);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;}
+.online-refresh-btn{background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;border-radius:6px;transition:.15s;display:flex;align-items:center;}
+.online-refresh-btn:hover{color:var(--text);background:var(--bg3);}
+.online-refresh-btn.spinning svg{animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.online-users-list{max-height:220px;overflow-y:auto;}
+.online-users-list::-webkit-scrollbar{width:4px;}
+.online-users-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.online-user-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background .15s;}
+.online-user-row:last-child{border-bottom:none;}
+.online-user-row:hover{background:var(--bg3);}
+.online-user-row.me-row{cursor:default;opacity:.5;}
+.online-user-row.me-row:hover{background:none;}
+.user-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;}
+.user-info{flex:1;min-width:0;}
+.user-name{font-size:14px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-id{font-size:11px;color:var(--text3);font-family:monospace;}
+.user-status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.call-user-btn{padding:5px 12px;border-radius:6px;border:0.5px solid var(--accent);background:rgba(79,142,247,.1);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap;}
+.call-user-btn:hover{background:var(--accent);color:#fff;}
+.online-empty{padding:24px 16px;text-align:center;color:var(--text3);font-size:13px;}
+.online-empty svg{width:28px;opacity:.3;margin-bottom:8px;}
+
+/* ── CALL SCREEN ── */
+#call-screen{display:none;height:100vh;overflow:hidden;}
+.call-layout{display:flex;height:100%;position:relative;}
+
+/* Video stage */
+.video-stage{flex:1;position:relative;background:#000;overflow:hidden;transition:flex .3s;}
+
+/* 50/50 split layout */
+.video-grid{display:flex;width:100%;height:100%;}
+.video-cell{flex:1;position:relative;background:#111;overflow:hidden;}
+.video-cell+.video-cell{border-left:2px solid var(--bg);}
+.video-cell video{width:100%;height:100%;object-fit:cover;display:block;}
+#local-vid{transform:scaleX(-1);}
+
+/* Label tags */
+.vid-label{position:absolute;bottom:10px;left:12px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);border-radius:20px;padding:4px 10px;font-size:12px;color:#fff;z-index:5;pointer-events:none;}
+
+.remote-placeholder-call{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--text3);}
+.remote-avatar{width:88px;height:88px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:600;color:var(--text2);border:2px solid rgba(255,255,255,.08);}
+.remote-placeholder-call p{font-size:14px;}
+
+/* Cam-off overlay for local cell */
+.pip-cam-off{position:absolute;inset:0;background:var(--bg2);display:none;align-items:center;justify-content:center;flex-direction:column;gap:4px;color:var(--text3);font-size:11px;}
+.pip-cam-off svg{width:24px;opacity:.5;}
+
+.hud-top{position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:8px;z-index:10;}
+.badge{background:rgba(0,0,0,.55);backdrop-filter:blur(6px);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:6px;color:#fff;font-size:12px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:p 2s infinite;}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* Controls bar */
+.controls{position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-top:0.5px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;z-index:30;}
+.ctrl-center{display:flex;gap:8px;align-items:center;}
+.ctrl-btn{width:46px;height:46px;border-radius:50%;border:0.5px solid var(--border);background:var(--bg3);color:rgba(255,255,255,.8);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0;}
+.ctrl-btn:hover{background:#2a2a36;}
+.ctrl-btn:active{transform:scale(.92);}
+.ctrl-btn.off{background:rgba(220,50,50,.18);border-color:rgba(220,50,50,.35);color:#f55;}
+.ctrl-btn.active{background:rgba(79,142,247,.18);border-color:rgba(79,142,247,.4);color:var(--accent);}
+.end-btn{width:54px;height:54px;background:var(--danger);border-color:transparent;color:#fff;}
+.end-btn:hover{background:#c00;}
+.peer-info{font-size:12px;color:var(--text2);min-width:60px;}
+.peer-info strong{display:block;font-size:14px;color:var(--text);font-weight:500;}
+.side-btns{display:flex;gap:6px;}
+.side-btn{padding:6px 10px;border-radius:7px;border:0.5px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:.15s;}
+.side-btn:hover{background:var(--bg3);color:var(--text);}
+.side-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.1);}
+
+/* ── SIDE PANEL (chat + whiteboard) ── */
+.side-panel{width:0;background:var(--bg2);border-left:0.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width .25s ease;flex-shrink:0;}
+.side-panel.open{width:320px;}
+.panel-tabs{display:flex;border-bottom:0.5px solid var(--border);flex-shrink:0;}
+.tab-btn{flex:1;padding:12px 8px;background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.panel-close{padding:10px;background:none;border:none;color:var(--text3);cursor:pointer;flex-shrink:0;}
+.panel-close:hover{color:var(--text);}
+
+/* Chat */
+.chat-pane,.wb-pane{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.chat-pane.active,.wb-pane.active{display:flex;}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.chat-messages::-webkit-scrollbar{width:4px;}
+.chat-messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+.msg-row{display:flex;flex-direction:column;gap:2px;}
+.msg-row.me{align-items:flex-end;}
+.msg-row.them{align-items:flex-start;}
+.msg-name{font-size:11px;color:var(--text3);padding:0 4px;}
+.msg-bubble{max-width:85%;padding:8px 12px;border-radius:12px;font-size:14px;line-height:1.5;word-break:break-word;}
+.msg-row.me .msg-bubble{background:var(--accent);color:#fff;border-bottom-right-radius:3px;}
+.msg-row.them .msg-bubble{background:var(--bg3);color:var(--text);border-bottom-left-radius:3px;}
+.msg-time{font-size:10px;color:var(--text3);padding:0 4px;}
+.msg-system{text-align:center;font-size:11px;color:var(--text3);padding:4px 0;}
+.chat-input-area{padding:10px;border-top:0.5px solid var(--border);display:flex;gap:8px;align-items:flex-end;}
+.chat-input-area textarea{flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:8px 10px;resize:none;outline:none;max-height:100px;font-family:inherit;line-height:1.5;}
+.chat-input-area textarea:focus{border-color:var(--accent);}
+.send-btn{width:36px;height:36px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s;}
+.send-btn:hover{background:#3a7fe0;}
+.unread-badge{background:var(--danger);color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;margin-left:4px;}
+
+/* Whiteboard */
+.wb-pane{position:relative;}
+.wb-toolbar{padding:8px 10px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+.wb-tool-btn{padding:5px 8px;border-radius:6px;border:0.5px solid var(--border);background:var(--bg3);color:var(--text2);font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:.15s;white-space:nowrap;}
+.wb-tool-btn:hover{background:var(--bg);color:var(--text);}
+.wb-tool-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.1);}
+.wb-color-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.1s;flex-shrink:0;}
+.wb-color-swatch.selected{border-color:#fff;}
+.wb-size-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);}
+.wb-size-row input[type=range]{width:60px;}
+#wb-canvas{flex:1;background:#1a1a2a;cursor:crosshair;display:block;width:100%;}
+.wb-canvas-wrap{flex:1;overflow:hidden;position:relative;}
+
+.quiz-start-btn{border-color:#f7a94f;color:#f7a94f;background:rgba(247,169,79,.08);}
+.quiz-start-btn:hover{background:rgba(247,169,79,.18);color:#f7a94f;}
+.quiz-start-btn.active{border-color:#f7a94f;color:#f7a94f;background:rgba(247,169,79,.18);}
+
+/* ── QUIZ OVERLAY (나에게만 보임) ── */
+#quiz-overlay{
+  display:none;position:absolute;
+  bottom:80px;left:50%;
+  transform:translateX(-50%);
+  z-index:50;
+  width:min(340px,40vw);
+  user-select:none;
+}
+#quiz-overlay.show{display:block;}
+#quiz-overlay.dragging{transition:none;cursor:grabbing;}
+.quiz-card{
+  background:rgba(13,13,16,0.92);
+  backdrop-filter:blur(16px);
+  border:1.5px solid rgba(247,169,79,.45);
+  border-radius:20px;
+  padding:1.5rem 1.5rem 1.2rem;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  box-shadow:0 8px 40px rgba(0,0,0,.7);
+}
+.quiz-header{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;cursor:grab;}
+.quiz-header:active{cursor:grabbing;}
+.quiz-title{font-size:12px;color:rgba(247,169,79,.7);font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
+.quiz-score-badge{font-size:12px;color:rgba(255,255,255,.5);background:rgba(255,255,255,.07);border-radius:20px;padding:3px 10px;}
+.quiz-word{
+  font-size:clamp(22px,4vw,34px);font-weight:700;color:#fff;text-align:center;
+  letter-spacing:-.5px;line-height:1.2;
+  text-shadow:0 2px 12px rgba(247,169,79,.3);
+}
+.quiz-hint{font-size:12px;color:rgba(255,255,255,.35);text-align:center;}
+
+/* Timer ring */
+.quiz-timer-wrap{position:relative;width:64px;height:64px;flex-shrink:0;}
+.quiz-timer-svg{transform:rotate(-90deg);}
+.quiz-timer-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:5;}
+.quiz-timer-ring{fill:none;stroke:#f7a94f;stroke-width:5;stroke-linecap:round;
+  stroke-dasharray:163;stroke-dashoffset:0;transition:stroke-dashoffset .9s linear,stroke .5s;}
+.quiz-timer-ring.urgent{stroke:#f55;}
+.quiz-timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;}
+
+.quiz-actions{display:flex;gap:8px;width:100%;}
+.quiz-btn{flex:1;padding:9px 6px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;}
+.quiz-btn.correct{background:rgba(46,213,115,.2);color:#2ed573;border:1px solid rgba(46,213,115,.35);}
+.quiz-btn.correct:hover{background:rgba(46,213,115,.35);}
+.quiz-btn.skip{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);}
+.quiz-btn.skip:hover{background:rgba(255,255,255,.14);color:rgba(255,255,255,.8);}
+.quiz-btn.stop{background:rgba(220,0,34,.15);color:#f55;border:1px solid rgba(220,0,34,.3);}
+.quiz-btn.stop:hover{background:rgba(220,0,34,.28);}
+
+/* Result flash */
+.quiz-result-flash{
+  position:absolute;inset:0;border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;opacity:0;pointer-events:none;
+  transition:opacity .2s;
+}
+.quiz-result-flash.show{opacity:1;}
+
+/* Quiz notify for guesser */
+.quiz-notify{
+  display:none;position:absolute;
+  bottom:80px;left:50%;
+  transform:translateX(-50%);
+  z-index:50;
+  width:min(220px,28vw);
+  user-select:none;
+}
+.quiz-notify.show{display:block;}
+.quiz-notify.dragging{cursor:grabbing;}
+.quiz-notify-card{
+  background:rgba(13,13,16,.88);backdrop-filter:blur(12px);
+  border:1px solid rgba(247,169,79,.3);border-radius:14px;
+  padding:14px 16px;text-align:center;
+  cursor:grab;
+}
+.quiz-notify-card:active{cursor:grabbing;}
+.quiz-notify-card p{font-size:13px;color:rgba(255,255,255,.6);margin-bottom:6px;}
+.quiz-notify-card strong{font-size:15px;color:#f7a94f;}
+.quiz-notify-timer{font-size:22px;font-weight:700;color:#fff;margin-top:6px;font-variant-numeric:tabular-nums;}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(22,22,28,.96);border:0.5px solid var(--border);border-radius:8px;padding:10px 18px;color:rgba(255,255,255,.85);font-size:13px;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;z-index:200;}
+.toast.show{opacity:1;}
+
+/* Incoming */
+#incoming-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+.incoming-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:20px;padding:2.5rem 2rem;display:flex;flex-direction:column;align-items:center;gap:1rem;min-width:280px;text-align:center;}
+.ring-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:600;animation:ring 1.4s ease-in-out infinite;}
+@keyframes ring{0%,100%{box-shadow:0 0 0 8px rgba(79,142,247,.15),0 0 0 16px rgba(79,142,247,.07)}50%{box-shadow:0 0 0 12px rgba(79,142,247,.2),0 0 0 24px rgba(79,142,247,.1)}}
+.incoming-name{font-size:20px;font-weight:600;}
+.incoming-sub{font-size:13px;color:var(--text2);}
+.incoming-btns{display:flex;gap:16px;margin-top:.5rem;}
+.incoming-accept{width:60px;height:60px;border-radius:50%;border:none;background:var(--green);color:#fff;font-size:22px;cursor:pointer;transition:.2s;}
+.incoming-accept:hover{background:#20c060;}
+.incoming-reject{width:60px;height:60px;border-radius:50%;border:none;background:var(--danger);color:#fff;font-size:22px;cursor:pointer;transition:.2s;}
+.incoming-reject:hover{background:#c00;}
+
+@media(max-width:600px){
+  .side-panel.open{width:100%;position:absolute;inset:0;z-index:50;}
+  .controls{gap:4px;}
+  .ctrl-btn{width:40px;height:40px;}
+  .end-btn{width:48px;height:48px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOBBY ── -->
+<div id="lobby">
+  <div class="lobby-wrap">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg class="ic" width="24" height="24" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      </div>
+      <span class="logo-text">StreamCall</span>
+    </div>
+    <div class="card">
+      <div>
+        <label>내 이름</label>
+        <input type="text" id="my-name" placeholder="이름 입력" autocomplete="off"/>
+      </div>
+      <div>
+        <label>카메라 미리보기</label>
+        <div class="preview-box">
+          <video id="preview-vid" autoplay muted playsinline></video>
+          <div class="preview-placeholder" id="preview-ph">
+            <svg class="ic" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            <span>카메라 켜기 버튼을 누르세요</span>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-toggle" id="cam-toggle" onclick="togglePreCam()">
+          <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> 카메라
+        </button>
+        <button class="btn-toggle" id="mic-toggle" onclick="togglePreMic()">
+          <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 마이크
+        </button>
+      </div>
+      <p class="status-msg" id="lobby-status">준비 중...</p>
+      <button class="btn-primary" id="ready-btn" onclick="goReady()" disabled>입장하기</button>
+    </div>
+    <div class="divider">내 통화 ID</div>
+    <div class="id-box">
+      <div>
+        <div class="id-label">이 ID를 상대방에게 공유하세요</div>
+        <div class="id-value" id="my-id-display">----</div>
+      </div>
+      <button class="copy-btn" onclick="copyId()">복사</button>
+    </div>
+
+    <!-- 온라인 사용자 목록 -->
+    <div class="online-list-card">
+      <div class="online-list-header">
+        <div class="online-list-title">
+          <span class="user-status-dot"></span>
+          접속 중인 사용자
+          <span class="online-count-badge" id="online-count">0명</span>
+        </div>
+        <button class="online-refresh-btn" id="refresh-btn" onclick="refreshOnlineUsers()" title="새로고침">
+          <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+        </button>
+      </div>
+      <div class="online-users-list" id="online-users-list">
+        <div class="online-empty" id="online-empty">
+          <svg class="ic" viewBox="0 0 24 24" style="display:block;margin:0 auto 8px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          아직 다른 사용자가 없습니다.<br>ID를 공유하거나 기다려보세요.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div>
+        <label>또는 ID를 직접 입력해서 전화 걸기</label>
+        <input type="text" id="peer-id-input" placeholder="상대방 ID 입력 (예: 1234)" autocomplete="off" onkeydown="if(event.key==='Enter')callPeer()"/>
+      </div>
+      <button class="btn-primary" id="call-btn" onclick="callPeer()" disabled>📞 &nbsp;전화 걸기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CALL SCREEN ── -->
+<div id="call-screen">
+  <div class="call-layout">
+
+    <!-- Video area -->
+    <div class="video-stage" id="video-stage">
+      <div class="video-grid">
+        <!-- Remote (상대방) -->
+        <div class="video-cell" id="remote-cell">
+          <video id="remote-vid" autoplay playsinline></video>
+          <div class="remote-placeholder-call" id="remote-ph-call">
+            <div class="remote-avatar" id="call-avatar">?</div>
+            <p id="call-status-txt">연결 중...</p>
+          </div>
+          <div class="vid-label" id="peer-vid-label">상대방</div>
+        </div>
+        <!-- Local (나) -->
+        <div class="video-cell" id="local-cell">
+          <video id="local-vid" autoplay muted playsinline></video>
+          <div class="pip-cam-off" id="pip-cam-off">
+            <svg class="ic" viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/></svg>
+            카메라 꺼짐
+          </div>
+          <div class="vid-label">나</div>
+        </div>
+      </div>
+      <div class="hud-top">
+        <div class="badge"><span class="dot"></span> 연결됨</div>
+        <div class="badge" id="timer-badge">00:00</div>
+      </div>
+
+      <!-- 퀴즈 오버레이 (설명자에게만 보임) -->
+      <div id="quiz-overlay">
+        <div class="quiz-card">
+          <div class="quiz-header">
+            <span class="quiz-title">🎯 퀴즈 — 설명하세요!</span>
+            <span class="quiz-score-badge">점수: <span id="quiz-score">0</span></span>
+          </div>
+          <div class="quiz-timer-wrap">
+            <svg class="quiz-timer-svg" width="64" height="64" viewBox="0 0 64 64">
+              <circle class="quiz-timer-bg" cx="32" cy="32" r="26"/>
+              <circle class="quiz-timer-ring" id="quiz-ring" cx="32" cy="32" r="26"/>
+            </svg>
+            <div class="quiz-timer-num" id="quiz-countdown">30</div>
+          </div>
+          <div class="quiz-word" id="quiz-word">—</div>
+          <div class="quiz-hint" id="quiz-hint"></div>
+          <div class="quiz-actions">
+            <button class="quiz-btn correct" onclick="quizCorrect()">✅ 정답!</button>
+            <button class="quiz-btn skip" onclick="quizSkip()">⏭ 넘기기</button>
+            <button class="quiz-btn stop" onclick="quizStop()">⏹ 종료</button>
+          </div>
+          <div class="quiz-result-flash" id="quiz-flash"></div>
+        </div>
+      </div>
+
+      <!-- 퀴즈 진행 알림 (맞추는 사람에게 보임) -->
+      <div class="quiz-notify" id="quiz-notify">
+        <div class="quiz-notify-card">
+          <p>상대방이 설명하는 단어를 맞춰보세요!</p>
+          <strong id="quiz-notify-round">1번째 문제</strong>
+          <div class="quiz-notify-timer" id="quiz-notify-timer">30</div>
+        </div>
+      </div>
+      <!-- Controls bar inside video stage -->
+      <div class="controls">
+        <div class="peer-info">
+          <span>통화 중</span>
+          <strong id="peer-name-disp">상대방</strong>
+        </div>
+        <div class="ctrl-center">
+          <button class="ctrl-btn" id="ctrl-mic" title="마이크" onclick="ctrlMic()">
+            <svg class="ic" width="18" height="18" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <button class="ctrl-btn" id="ctrl-cam" title="카메라" onclick="ctrlCam()">
+            <svg class="ic" width="18" height="18" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </button>
+          <button class="ctrl-btn end-btn" title="통화 종료" onclick="hangUp()">
+            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.43 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.3 9.89"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+          </button>
+          <button class="ctrl-btn" id="ctrl-share" title="화면 공유" onclick="ctrlShare()">
+            <svg class="ic" width="18" height="18" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </button>
+          <button class="ctrl-btn" id="ctrl-flip" title="카메라 전환" onclick="flipCamera()">
+            <svg class="ic" width="18" height="18" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+          </button>
+        </div>
+        <div class="side-btns">
+          <button class="side-btn" id="btn-chat" onclick="togglePanel('chat')">
+            <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            채팅<span class="unread-badge" id="unread-badge" style="display:none">0</span>
+          </button>
+          <button class="side-btn" id="btn-wb" onclick="togglePanel('wb')">
+            <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            화이트보드
+          </button>
+          <button class="side-btn quiz-start-btn" id="btn-quiz" onclick="startQuiz()">
+            <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            퀴즈 시작
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side panel -->
+    <div class="side-panel" id="side-panel">
+      <div class="panel-tabs">
+        <button class="tab-btn active" id="tab-chat" onclick="switchTab('chat')">
+          <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          채팅
+        </button>
+        <button class="tab-btn" id="tab-wb" onclick="switchTab('wb')">
+          <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          화이트보드
+        </button>
+        <button class="panel-close" onclick="closePanel()">
+          <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Chat pane -->
+      <div class="chat-pane active" id="chat-pane">
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg-system">채팅이 시작되었습니다</div>
+        </div>
+        <div class="chat-input-area">
+          <textarea id="chat-input" placeholder="메시지 입력..." rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+          <button class="send-btn" onclick="sendChat()">
+            <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Whiteboard pane -->
+      <div class="wb-pane" id="wb-pane">
+        <div class="wb-toolbar">
+          <button class="wb-tool-btn active" id="wbt-pen" onclick="setWbTool('pen')">
+            <svg class="ic" width="12" height="12" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>펜
+          </button>
+          <button class="wb-tool-btn" id="wbt-eraser" onclick="setWbTool('eraser')">
+            <svg class="ic" width="12" height="12" viewBox="0 0 24 24"><polyline points="20 20 8 20"/><path d="M8.5 12.5L4 17l3 3 9.5-9.5"/><path d="M15 7l2 2"/></svg>지우개
+          </button>
+          <button class="wb-tool-btn" id="wbt-line" onclick="setWbTool('line')">직선</button>
+          <button class="wb-tool-btn" id="wbt-rect" onclick="setWbTool('rect')">사각형</button>
+          <button class="wb-tool-btn" id="wbt-circle" onclick="setWbTool('circle')">원</button>
+          <button class="wb-tool-btn" id="wbt-text" onclick="setWbTool('text')">텍스트</button>
+          <div style="flex:1"></div>
+          <button class="wb-tool-btn" onclick="wbUndo()" title="실행 취소">↩</button>
+          <button class="wb-tool-btn" onclick="wbClear()" style="color:#f55">지우기</button>
+        </div>
+        <div class="wb-toolbar" style="padding-top:4px;padding-bottom:8px;">
+          <!-- Colors -->
+          <div class="wb-color-swatch selected" style="background:#ffffff" onclick="setWbColor('#ffffff',this)" title="흰색"></div>
+          <div class="wb-color-swatch" style="background:#4f8ef7" onclick="setWbColor('#4f8ef7',this)" title="파란색"></div>
+          <div class="wb-color-swatch" style="background:#2ed573" onclick="setWbColor('#2ed573',this)" title="초록색"></div>
+          <div class="wb-color-swatch" style="background:#ff4757" onclick="setWbColor('#ff4757',this)" title="빨간색"></div>
+          <div class="wb-color-swatch" style="background:#ffa502" onclick="setWbColor('#ffa502',this)" title="주황색"></div>
+          <div class="wb-color-swatch" style="background:#eccc68" onclick="setWbColor('#eccc68',this)" title="노란색"></div>
+          <div class="wb-color-swatch" style="background:#a29bfe" onclick="setWbColor('#a29bfe',this)" title="보라색"></div>
+          <div class="wb-color-swatch" style="background:#fd79a8" onclick="setWbColor('#fd79a8',this)" title="분홍색"></div>
+          <div style="flex:1"></div>
+          <div class="wb-size-row">
+            굵기 <input type="range" id="wb-size" min="1" max="20" value="3" oninput="wbSize=this.value">
+          </div>
+        </div>
+        <div class="wb-canvas-wrap">
+          <canvas id="wb-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incoming call -->
+<div id="incoming-overlay">
+  <div class="incoming-card">
+    <div class="ring-avatar" id="ring-avatar">?</div>
+    <div class="incoming-name" id="incoming-name">알 수 없음</div>
+    <div class="incoming-sub">영상통화가 걸려왔습니다</div>
+    <div class="incoming-btns">
+      <button class="incoming-accept" onclick="acceptCall()">
+        <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.29 6.29l1.31-1.31a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+      <button class="incoming-reject" onclick="rejectCall()">
+        <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+let peer=null,localStream=null,currentCall=null,pendingCall=null,dataConn=null;
+let remotePeerId='',micEnabled=true,camEnabled=true,sharing=false,screenStream=null;
+let timerInterval=null,elapsed=0,facingMode='user';
+let preCamOn=false,preMicOn=false,preStream=null;
+let panelOpen=false,currentTab='chat',unreadCount=0;
+let myName='익명';
+
+// ── Online Users Presence ──
+// 방식: 고정 허브 ID(streamcall-hub-0 등)를 선점 시도
+// 선점 성공 → 내가 허브 역할, 실패 → 허브에 연결해서 목록 수신
+const HUB_IDS = ['streamcall-hub-0','streamcall-hub-1','streamcall-hub-2'];
+let onlineUsers = {};       // { peerId: { name, joinedAt, lastSeen } }
+let presenceConns = {};     // peerId → DataConnection (presence 전용)
+let hubPeer = null;         // 허브 역할일 때 사용하는 별도 Peer
+let isHub = false;
+let myHubId = null;
+let presencePingInterval = null;
+let hubClients = {};        // 허브가 관리하는 클라이언트 연결들
+
+function initPresence(myPeerId) {
+  onlineUsers[myPeerId] = { name: myName || '익명', joinedAt: Date.now(), lastSeen: Date.now() };
+  renderOnlineList();
+  tryBecomeHub(0, myPeerId);
+}
+
+function tryBecomeHub(idx, myPeerId) {
+  if (idx >= HUB_IDS.length) {
+    // 모든 허브 선점 실패 → 허브에 연결자로 접속
+    connectToHub(myPeerId);
+    return;
+  }
+  const hubId = HUB_IDS[idx];
+  const tryPeer = new Peer(hubId, {
+    host:'0.peerjs.com', port:443, path:'/', secure:true,
+    config:{ iceServers:[{urls:'stun:stun.l.google.com:19302'}] }
+  });
+  tryPeer.on('open', () => {
+    // 허브 선점 성공!
+    isHub = true;
+    myHubId = hubId;
+    hubPeer = tryPeer;
+    console.log('[Presence] 허브 선점:', hubId);
+    showToast('🎉 허브성공당!');
+    setLobbyStatus('🎉 허브성공당! — 다른 사용자를 기다리는 중', 'ok');
+    setupHubRole(tryPeer, myPeerId);
+  });
+  tryPeer.on('error', err => {
+    tryPeer.destroy();
+    if (err.type === 'unavailable-id') {
+      // 이미 누가 쓰고 있음 → 다음 허브 시도
+      tryBecomeHub(idx + 1, myPeerId);
+    } else {
+      // 네트워크 오류 등 → 그냥 허브에 연결 시도
+      connectToHub(myPeerId);
+    }
+  });
+}
+
+function setupHubRole(hubPeerObj, myPeerId) {
+  // 허브: 접속하는 클라이언트들의 연결을 받아서 목록 배포
+  hubPeerObj.on('connection', conn => {
+    const clientId = conn.peer;
+    hubClients[clientId] = conn;
+    conn.on('open', () => {
+      // 신규 클라이언트에게 현재 전체 목록 전송
+      conn.send({ type: 'hub-list', users: onlineUsers });
+    });
+    conn.on('data', d => {
+      if (d.type === 'presence-hello') {
+        onlineUsers[clientId] = { name: d.name, joinedAt: Date.now(), lastSeen: Date.now() };
+        renderOnlineList();
+        // 모든 클라이언트에게 목록 업데이트 브로드캐스트
+        broadcastHubList();
+      } else if (d.type === 'presence-ping') {
+        if (onlineUsers[clientId]) onlineUsers[clientId].lastSeen = Date.now();
+        broadcastHubList();
+      } else if (d.type === 'presence-bye') {
+        delete onlineUsers[clientId];
+        delete hubClients[clientId];
+        renderOnlineList();
+        broadcastHubList();
+      }
+    });
+    conn.on('close', () => {
+      delete onlineUsers[clientId];
+      delete hubClients[clientId];
+      renderOnlineList();
+      broadcastHubList();
+    });
+    conn.on('error', () => {
+      delete hubClients[clientId];
+    });
+  });
+  // 허브 자신도 핑 유지
+  presencePingInterval = setInterval(() => {
+    onlineUsers[myPeerId] = { ...onlineUsers[myPeerId], lastSeen: Date.now(),
+      name: document.getElementById('my-name').value.trim() || '익명' };
+    broadcastHubList();
+  }, 6000);
+}
+
+function broadcastHubList() {
+  const msg = { type: 'hub-list', users: onlineUsers };
+  Object.values(hubClients).forEach(conn => { if (conn.open) conn.send(msg); });
+  renderOnlineList();
+}
+
+function connectToHub(myPeerId) {
+  // 허브들 중 하나에 연결 시도
+  tryConnectHub(0, myPeerId);
+}
+
+function tryConnectHub(idx, myPeerId) {
+  if (idx >= HUB_IDS.length) {
+    console.warn('[Presence] 모든 허브 연결 실패');
+    // 잠시 후 재시도
+    setTimeout(() => connectToHub(myPeerId), 5000);
+    return;
+  }
+  const hubId = HUB_IDS[idx];
+  const conn = peer.connect(hubId, {
+    label: 'presence',
+    metadata: { presence: true, name: myName || '익명' }
+  });
+  let opened = false;
+  conn.on('open', () => {
+    opened = true;
+    console.log('[Presence] 허브 연결 성공:', hubId);
+    presenceConns[hubId] = conn;
+    // 내 정보 전송
+    conn.send({ type: 'presence-hello', name: document.getElementById('my-name').value.trim() || '익명' });
+    // 주기적 핑
+    presencePingInterval = setInterval(() => {
+      if (conn.open) conn.send({ type: 'presence-ping', name: document.getElementById('my-name').value.trim() || '익명' });
+    }, 6000);
+  });
+  conn.on('data', d => {
+    if (d.type === 'hub-list') {
+      onlineUsers = d.users || {};
+      renderOnlineList();
+    }
+  });
+  conn.on('close', () => {
+    delete presenceConns[hubId];
+    clearInterval(presencePingInterval);
+    // 연결 끊기면 다른 허브 시도
+    setTimeout(() => connectToHub(myPeerId), 3000);
+  });
+  conn.on('error', () => {
+    if (!opened) tryConnectHub(idx + 1, myPeerId);
+  });
+  // 2초 안에 안 열리면 다음 허브
+  setTimeout(() => { if (!opened) { conn.close(); tryConnectHub(idx + 1, myPeerId); } }, 2000);
+}
+
+function setupPresenceConn(conn) {
+  // 허브가 받는 일반 presence 연결은 setupHubRole에서 처리
+  // 여기서는 무시 (중복 방지)
+}
+
+function removeOnlineUser(id) {
+  delete onlineUsers[id];
+  renderOnlineList();
+}
+
+function broadcastBye() {
+  if (isHub) {
+    delete onlineUsers[peer?.id];
+    broadcastHubList();
+    if (hubPeer) hubPeer.destroy();
+  } else {
+    Object.values(presenceConns).forEach(conn => {
+      if (conn.open) try { conn.send({ type: 'presence-bye' }); } catch(e) {}
+    });
+  }
+}
+
+function broadcastPresence() {
+  const name = document.getElementById('my-name').value.trim() || '익명';
+  if (isHub) {
+    onlineUsers[peer.id] = { ...onlineUsers[peer.id], name, lastSeen: Date.now() };
+    broadcastHubList();
+  } else {
+    Object.values(presenceConns).forEach(conn => {
+      if (conn.open) conn.send({ type: 'presence-ping', name });
+    });
+  }
+}
+
+const AVATAR_COLORS = ['#4f8ef7','#7c5af5','#2ed573','#f7a94f','#ff4757','#fd79a8','#a29bfe','#00cec9'];
+function avatarColor(id) { let h=0; for(let c of String(id)) h=(h+c.charCodeAt(0))%AVATAR_COLORS.length; return AVATAR_COLORS[h]; }
+
+function renderOnlineList() {
+  const list = document.getElementById('online-users-list');
+  const empty = document.getElementById('online-empty');
+  const myId = peer?.id;
+  const others = Object.entries(onlineUsers).filter(([id]) => id !== myId);
+  document.getElementById('online-count').textContent = others.length + '명';
+  Array.from(list.children).forEach(c => { if (c !== empty) c.remove(); });
+  if (others.length === 0) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  if (myId && onlineUsers[myId]) list.insertBefore(makeUserRow(myId, onlineUsers[myId], true), empty);
+  others.forEach(([id, info]) => list.insertBefore(makeUserRow(id, info, false), empty));
+}
+
+function makeUserRow(id, info, isMe) {
+  const row = document.createElement('div');
+  row.className = 'online-user-row' + (isMe ? ' me-row' : '');
+  const color = avatarColor(id);
+  const initial = (info.name || id).charAt(0).toUpperCase();
+  row.innerHTML = `
+    <div class="user-avatar" style="background:${color}22;color:${color}">${initial}</div>
+    <div class="user-info">
+      <div class="user-name">${escHtml(info.name||id)}${isMe?` <span style="font-size:11px;color:var(--text3)">(나)</span>`:''}</div>
+      <div class="user-id">ID: ${id}</div>
+    </div>
+    <div class="user-status-dot"></div>
+    ${!isMe?`<button class="call-user-btn" onclick="callUserById('${id}')">📞 전화</button>`:''}
+  `;
+  return row;
+}
+
+function callUserById(id) {
+  document.getElementById('peer-id-input').value = id;
+  callPeer();
+}
+
+function refreshOnlineUsers() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  broadcastPresence();
+  setTimeout(() => btn.classList.remove('spinning'), 700);
+  showToast('목록 새로고침 중...');
+}
+
+// ── PeerJS ──
+function initPeer(){
+  const id=String(Math.floor(1000+Math.random()*9000));
+  peer=new Peer(id,{host:'0.peerjs.com',port:443,path:'/',secure:true,
+    config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
+  peer.on('open',pid=>{
+    document.getElementById('my-id-display').textContent=pid;
+    setLobbyStatus('준비 완료 — ID를 상대방에게 공유하세요','ok');
+    document.getElementById('ready-btn').disabled=false;
+    document.getElementById('call-btn').disabled=false;
+    initPresence(pid);
+  });
+  peer.on('error',err=>{
+    if(err.type==='peer-unavailable'){setLobbyStatus('상대방 ID를 찾을 수 없습니다','error');showToast('❌ 상대방이 접속해 있지 않습니다');}
+    else setLobbyStatus('오류: '+err.message,'error');
+  });
+  peer.on('call',incoming=>{
+    pendingCall=incoming;
+    const name=incoming.metadata?.name||incoming.peer;
+    document.getElementById('incoming-name').textContent=name;
+    document.getElementById('ring-avatar').textContent=name.charAt(0).toUpperCase();
+    document.getElementById('incoming-overlay').style.display='flex';
+  });
+  // 데이터 연결 수신: 허브면 setupHubRole에서 이미 처리, 아니면 통화 채널
+  peer.on('connection',conn=>{
+    if(!isHub) setupDataConn(conn);
+  });
+  peer.on('disconnected',()=>peer.reconnect());
+}
+
+// ── Data channel (chat + whiteboard) ──
+function setupDataConn(conn){
+  dataConn=conn;
+  conn.on('open',()=>showToast('💬 채팅 채널 연결됨'));
+  conn.on('data',data=>{
+    if(data.type==='chat') receiveChatMsg(data);
+    else if(data.type==='wb-draw') wbReceiveDraw(data);
+    else if(data.type==='wb-clear') wbClearLocal();
+    else if(data.type==='wb-undo') wbUndoLocal();
+    else if(data.type.startsWith('quiz-')) handleQuizData(data);
+  });
+  conn.on('close',()=>{ dataConn=null; });
+}
+
+function sendData(obj){
+  if(dataConn&&dataConn.open) dataConn.send(obj);
+}
+
+// ── Lobby / Media ──
+async function togglePreCam(){
+  const btn=document.getElementById('cam-toggle');
+  if(!preCamOn){
+    try{
+      preStream=await navigator.mediaDevices.getUserMedia({video:{facingMode},audio:preMicOn});
+      document.getElementById('preview-vid').srcObject=preStream;
+      document.getElementById('preview-ph').style.display='none';
+      preCamOn=true; btn.classList.add('on');
+    }catch(e){showToast('카메라 권한이 필요합니다 — localhost에서 실행하세요');}
+  }else{
+    if(preStream) preStream.getVideoTracks().forEach(t=>t.stop());
+    document.getElementById('preview-vid').srcObject=null;
+    document.getElementById('preview-ph').style.display='flex';
+    preCamOn=false; btn.classList.remove('on');
+  }
+}
+async function togglePreMic(){
+  preMicOn=!preMicOn;
+  document.getElementById('mic-toggle').classList.toggle('on',preMicOn);
+}
+async function getLocalStream(){
+  if(localStream) return localStream;
+  try{ localStream=await navigator.mediaDevices.getUserMedia({video:preCamOn?{facingMode}:false,audio:true}); }
+  catch(e){ try{ localStream=await navigator.mediaDevices.getUserMedia({video:false,audio:true}); }catch(e2){ localStream=new MediaStream(); } }
+  return localStream;
+}
+function goReady(){
+  myName=document.getElementById('my-name').value.trim()||'익명';
+  document.getElementById('my-name').value=myName;
+  if(peer?.id) onlineUsers[peer.id]={name:myName, joinedAt:onlineUsers[peer.id]?.joinedAt||Date.now()};
+  broadcastPresence();
+  renderOnlineList();
+  showToast('✅ 준비 완료!');
+}
+async function callPeer(){
+  const peerId=document.getElementById('peer-id-input').value.trim();
+  if(!peerId){showToast('상대방 ID를 입력하세요');return;}
+  if(peerId===peer.id){showToast('자기 자신에게는 전화할 수 없습니다');return;}
+  setLobbyStatus('연결 중...','');
+  const stream=await getLocalStream();
+  myName=document.getElementById('my-name').value||'익명';
+  // Open data channel first
+  const conn=peer.connect(peerId,{metadata:{name:myName}});
+  setupDataConn(conn);
+  const call=peer.call(peerId,stream,{metadata:{name:myName}});
+  if(!call){setLobbyStatus('연결 실패','error');return;}
+  currentCall=call; remotePeerId=peerId;
+  document.getElementById('peer-name-disp').textContent=peerId;
+  document.getElementById('call-avatar').textContent=peerId.charAt(0);
+  document.getElementById('peer-vid-label').textContent=peerId;
+  document.getElementById('call-status-txt').textContent='연결 중...';
+  enterCallScreen(stream);
+  call.on('stream',remoteStream=>{
+    const rv=document.getElementById('remote-vid');
+    rv.srcObject=remoteStream;
+    document.getElementById('remote-ph-call').style.display='none';
+    showToast('✅ 상대방과 연결되었습니다'); startTimer();
+  });
+  call.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
+  call.on('error',e=>{showToast('연결 오류: '+e.message);endCallCleanup();});
+}
+async function acceptCall(){
+  document.getElementById('incoming-overlay').style.display='none';
+  const stream=await getLocalStream();
+  currentCall=pendingCall; remotePeerId=pendingCall.peer;
+  const callerName=pendingCall.metadata?.name||pendingCall.peer;
+  myName=document.getElementById('my-name').value||'익명';
+  document.getElementById('peer-name-disp').textContent=callerName;
+  document.getElementById('call-avatar').textContent=callerName.charAt(0).toUpperCase();
+  document.getElementById('peer-vid-label').textContent=callerName;
+  document.getElementById('call-status-txt').textContent=callerName+'과 연결 중...';
+  pendingCall.answer(stream);
+  enterCallScreen(stream);
+  pendingCall.on('stream',remoteStream=>{
+    const rv=document.getElementById('remote-vid');
+    rv.srcObject=remoteStream;
+    document.getElementById('remote-ph-call').style.display='none';
+    showToast('✅ 연결되었습니다'); startTimer();
+  });
+  pendingCall.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
+  pendingCall=null;
+}
+function rejectCall(){
+  document.getElementById('incoming-overlay').style.display='none';
+  if(pendingCall){pendingCall.close();pendingCall=null;}
+  showToast('통화를 거절했습니다');
+}
+function enterCallScreen(stream){
+  if(preStream){preStream.getTracks().forEach(t=>t.stop());preStream=null;}
+  document.getElementById('local-vid').srcObject=stream;
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('call-screen').style.display='block';
+  micEnabled=true; camEnabled=preCamOn;
+  updateCtrlMic(); updateCtrlCam();
+  initWhiteboard();
+}
+
+// ── In-call controls ──
+function ctrlMic(){
+  micEnabled=!micEnabled;
+  if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=micEnabled);
+  updateCtrlMic(); showToast(micEnabled?'🎙 마이크 켜짐':'🔇 마이크 꺼짐');
+}
+function ctrlCam(){
+  camEnabled=!camEnabled;
+  if(localStream) localStream.getVideoTracks().forEach(t=>t.enabled=camEnabled);
+  document.getElementById('pip-cam-off').style.display=camEnabled?'none':'flex';
+  updateCtrlCam(); showToast(camEnabled?'📷 카메라 켜짐':'📷 카메라 꺼짐');
+}
+function updateCtrlMic(){document.getElementById('ctrl-mic').className='ctrl-btn'+(micEnabled?'':' off');}
+function updateCtrlCam(){document.getElementById('ctrl-cam').className='ctrl-btn'+(camEnabled?'':' off');}
+async function ctrlShare(){
+  const btn=document.getElementById('ctrl-share');
+  if(!sharing){
+    try{
+      screenStream=await navigator.mediaDevices.getDisplayMedia({video:true});
+      const track=screenStream.getVideoTracks()[0];
+      const sender=currentCall?.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
+      if(sender) sender.replaceTrack(track);
+      document.getElementById('local-vid').srcObject=screenStream;
+      sharing=true; btn.classList.add('active');
+      showToast('🖥 화면 공유 중');
+      track.onended=()=>stopShare();
+    }catch(e){showToast('화면 공유 취소됨');}
+  }else stopShare();
+}
+function stopShare(){
+  if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
+  const sender=currentCall?.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
+  const camTrack=localStream?.getVideoTracks()[0];
+  if(sender&&camTrack) sender.replaceTrack(camTrack);
+  if(localStream) document.getElementById('local-vid').srcObject=localStream;
+  sharing=false; document.getElementById('ctrl-share').classList.remove('active');
+  showToast('화면 공유 종료');
+}
+async function flipCamera(){
+  facingMode=facingMode==='user'?'environment':'user';
+  try{
+    const ns=await navigator.mediaDevices.getUserMedia({video:{facingMode},audio:true});
+    const nt=ns.getVideoTracks()[0];
+    const sender=currentCall?.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
+    if(sender) sender.replaceTrack(nt);
+    if(localStream){localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});localStream.addTrack(nt);}
+    document.getElementById('local-vid').srcObject=localStream;
+    showToast(facingMode==='user'?'셀카 카메라로 전환':'후면 카메라로 전환');
+  }catch(e){showToast('카메라 전환 실패');}
+}
+function hangUp(){if(currentCall)currentCall.close();endCallCleanup();}
+function endCallCleanup(){
+  clearInterval(timerInterval);timerInterval=null;elapsed=0;
+  if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
+  if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
+  if(dataConn){dataConn.close();dataConn=null;}
+  currentCall=null;remotePeerId='';sharing=false;
+  clearInterval(quizTimer); quizActive=false; quizIsExplainer=false;
+  document.getElementById('quiz-overlay').classList.remove('show');
+  document.getElementById('quiz-notify').classList.remove('show');
+  document.getElementById('btn-quiz').classList.remove('active');
+  document.getElementById('remote-vid').srcObject=null;
+  document.getElementById('remote-ph-call').style.display='flex';
+  document.getElementById('local-vid').srcObject=null;
+  document.getElementById('call-screen').style.display='none';
+  document.getElementById('lobby').style.display='flex';
+  document.getElementById('timer-badge').textContent='00:00';
+  document.getElementById('chat-messages').innerHTML='<div class="msg-system">채팅이 시작되었습니다</div>';
+  closePanel(); unreadCount=0; updateUnreadBadge();
+}
+
+// ── Timer ──
+function startTimer(){
+  elapsed=0; clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    elapsed++;
+    const m=String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s=String(elapsed%60).padStart(2,'0');
+    document.getElementById('timer-badge').textContent=m+':'+s;
+  },1000);
+}
+
+// ── Panel ──
+function togglePanel(tab){
+  if(panelOpen&&currentTab===tab){closePanel();return;}
+  panelOpen=true;
+  document.getElementById('side-panel').classList.add('open');
+  switchTab(tab);
+  if(tab==='chat'){unreadCount=0;updateUnreadBadge();}
+  if(tab==='wb') resizeWbCanvas();
+}
+function closePanel(){
+  panelOpen=false;
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('btn-chat').classList.remove('active');
+  document.getElementById('btn-wb').classList.remove('active');
+}
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('chat-pane').classList.toggle('active',tab==='chat');
+  document.getElementById('wb-pane').classList.toggle('active',tab==='wb');
+  document.getElementById('tab-chat').classList.toggle('active',tab==='chat');
+  document.getElementById('tab-wb').classList.toggle('active',tab==='wb');
+  document.getElementById('btn-chat').classList.toggle('active',tab==='chat');
+  document.getElementById('btn-wb').classList.toggle('active',tab==='wb');
+  if(tab==='chat'){unreadCount=0;updateUnreadBadge();}
+  if(tab==='wb') setTimeout(resizeWbCanvas,50);
+}
+function updateUnreadBadge(){
+  const b=document.getElementById('unread-badge');
+  b.style.display=unreadCount>0?'inline':'none';
+  b.textContent=unreadCount;
+}
+
+// ── Chat ──
+function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim();
+  if(!text) return;
+  const msg={type:'chat',name:myName,text,time:Date.now()};
+  appendChatMsg(msg,true);
+  sendData(msg);
+  inp.value=''; inp.style.height='auto';
+}
+function receiveChatMsg(data){
+  appendChatMsg(data,false);
+  if(!(panelOpen&&currentTab==='chat')){
+    unreadCount++; updateUnreadBadge();
+  }
+}
+function appendChatMsg(data,isMe){
+  const wrap=document.getElementById('chat-messages');
+  const t=new Date(data.time);
+  const timeStr=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
+  const row=document.createElement('div');
+  row.className='msg-row '+(isMe?'me':'them');
+  row.innerHTML=`<div class="msg-name">${escHtml(data.name)}</div><div class="msg-bubble">${escHtml(data.text)}</div><div class="msg-time">${timeStr}</div>`;
+  wrap.appendChild(row);
+  wrap.scrollTop=wrap.scrollHeight;
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Whiteboard ──
+let wbCanvas,wbCtx,wbDrawing=false,wbTool='pen',wbColor='#ffffff',wbSize=3;
+let wbStartX,wbStartY,wbSnap=null;
+let wbHistory=[]; // array of ImageData snapshots
+const MAX_HISTORY=30;
+
+function initWhiteboard(){
+  wbCanvas=document.getElementById('wb-canvas');
+  wbCtx=wbCanvas.getContext('2d');
+  resizeWbCanvas();
+  // Draw events
+  wbCanvas.addEventListener('mousedown',wbStart);
+  wbCanvas.addEventListener('mousemove',wbMove);
+  wbCanvas.addEventListener('mouseup',wbEnd);
+  wbCanvas.addEventListener('mouseleave',wbEnd);
+  // Touch
+  wbCanvas.addEventListener('touchstart',e=>{e.preventDefault();wbStart(e.touches[0]);},{passive:false});
+  wbCanvas.addEventListener('touchmove',e=>{e.preventDefault();wbMove(e.touches[0]);},{passive:false});
+  wbCanvas.addEventListener('touchend',e=>{e.preventDefault();wbEnd();},{passive:false});
+}
+
+function resizeWbCanvas(){
+  if(!wbCanvas) return;
+  const wrap=wbCanvas.parentElement;
+  const img=wbCtx?wbCtx.getImageData(0,0,wbCanvas.width,wbCanvas.height):null;
+  wbCanvas.width=wrap.clientWidth||300;
+  wbCanvas.height=wrap.clientHeight||400;
+  wbCtx.fillStyle='#1a1a2a';
+  wbCtx.fillRect(0,0,wbCanvas.width,wbCanvas.height);
+  if(img) wbCtx.putImageData(img,0,0);
+}
+
+function getWbPos(e){
+  const r=wbCanvas.getBoundingClientRect();
+  return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+
+function wbSaveHistory(){
+  if(wbHistory.length>=MAX_HISTORY) wbHistory.shift();
+  wbHistory.push(wbCtx.getImageData(0,0,wbCanvas.width,wbCanvas.height));
+}
+
+function wbStart(e){
+  if(wbTool==='text'){
+    const pos=getWbPos(e);
+    const txt=prompt('텍스트 입력:');
+    if(txt){
+      wbSaveHistory();
+      wbCtx.font=`${Math.max(14,wbSize*4)}px -apple-system, sans-serif`;
+      wbCtx.fillStyle=wbColor;
+      wbCtx.fillText(txt,pos.x,pos.y);
+      wbSendDraw({tool:'text',x:pos.x,y:pos.y,text:txt,color:wbColor,size:wbSize});
+    }
+    return;
+  }
+  wbDrawing=true;
+  const pos=getWbPos(e);
+  wbStartX=pos.x; wbStartY=pos.y;
+  wbSaveHistory();
+  if(wbTool==='pen'||wbTool==='eraser'){
+    wbCtx.beginPath(); wbCtx.moveTo(pos.x,pos.y);
+  }
+  if(wbTool==='line'||wbTool==='rect'||wbTool==='circle'){
+    wbSnap=wbCtx.getImageData(0,0,wbCanvas.width,wbCanvas.height);
+  }
+}
+
+function wbMove(e){
+  if(!wbDrawing) return;
+  const pos=getWbPos(e);
+  if(wbTool==='pen'){
+    wbCtx.strokeStyle=wbColor; wbCtx.lineWidth=wbSize;
+    wbCtx.lineCap='round'; wbCtx.lineJoin='round';
+    wbCtx.lineTo(pos.x,pos.y); wbCtx.stroke();
+    wbSendDraw({tool:'pen-seg',x1:wbStartX,y1:wbStartY,x2:pos.x,y2:pos.y,color:wbColor,size:wbSize});
+    wbCtx.beginPath(); wbCtx.moveTo(pos.x,pos.y);
+    wbStartX=pos.x; wbStartY=pos.y;
+  } else if(wbTool==='eraser'){
+    wbCtx.strokeStyle='#1a1a2a'; wbCtx.lineWidth=wbSize*4;
+    wbCtx.lineCap='round'; wbCtx.lineJoin='round';
+    wbCtx.lineTo(pos.x,pos.y); wbCtx.stroke();
+    wbSendDraw({tool:'pen-seg',x1:wbStartX,y1:wbStartY,x2:pos.x,y2:pos.y,color:'#1a1a2a',size:wbSize*4});
+    wbCtx.beginPath(); wbCtx.moveTo(pos.x,pos.y);
+    wbStartX=pos.x; wbStartY=pos.y;
+  } else if(wbSnap){
+    wbCtx.putImageData(wbSnap,0,0);
+    wbCtx.strokeStyle=wbColor; wbCtx.lineWidth=wbSize;
+    wbCtx.beginPath();
+    if(wbTool==='line'){
+      wbCtx.moveTo(wbStartX,wbStartY); wbCtx.lineTo(pos.x,pos.y); wbCtx.stroke();
+    } else if(wbTool==='rect'){
+      wbCtx.strokeRect(wbStartX,wbStartY,pos.x-wbStartX,pos.y-wbStartY);
+    } else if(wbTool==='circle'){
+      const rx=Math.abs(pos.x-wbStartX)/2, ry=Math.abs(pos.y-wbStartY)/2;
+      const cx=wbStartX+(pos.x-wbStartX)/2, cy=wbStartY+(pos.y-wbStartY)/2;
+      wbCtx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); wbCtx.stroke();
+    }
+  }
+}
+
+function wbEnd(e){
+  if(!wbDrawing) return;
+  wbDrawing=false;
+  if(wbTool==='line'||wbTool==='rect'||wbTool==='circle'){
+    let ex,ey;
+    if(e&&e.clientX!==undefined){const p=getWbPos(e);ex=p.x;ey=p.y;}
+    else if(wbSnap){ex=wbStartX;ey=wbStartY;} // fallback
+    if(ex!==undefined) wbSendDraw({tool:wbTool,x1:wbStartX,y1:wbStartY,x2:ex,y2:ey,color:wbColor,size:wbSize});
+    wbSnap=null;
+  }
+}
+
+function wbSendDraw(data){
+  sendData({type:'wb-draw',...data});
+}
+
+function wbReceiveDraw(data){
+  if(!wbCtx) return;
+  wbCtx.strokeStyle=data.color; wbCtx.lineWidth=data.size;
+  wbCtx.lineCap='round'; wbCtx.lineJoin='round';
+  wbCtx.beginPath();
+  if(data.tool==='pen-seg'){
+    wbCtx.moveTo(data.x1,data.y1); wbCtx.lineTo(data.x2,data.y2); wbCtx.stroke();
+  } else if(data.tool==='line'){
+    wbCtx.moveTo(data.x1,data.y1); wbCtx.lineTo(data.x2,data.y2); wbCtx.stroke();
+  } else if(data.tool==='rect'){
+    wbCtx.strokeRect(data.x1,data.y1,data.x2-data.x1,data.y2-data.y1);
+  } else if(data.tool==='circle'){
+    const rx=Math.abs(data.x2-data.x1)/2,ry=Math.abs(data.y2-data.y1)/2;
+    const cx=data.x1+(data.x2-data.x1)/2,cy=data.y1+(data.y2-data.y1)/2;
+    wbCtx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); wbCtx.stroke();
+  } else if(data.tool==='text'){
+    wbCtx.font=`${Math.max(14,data.size*4)}px -apple-system, sans-serif`;
+    wbCtx.fillStyle=data.color; wbCtx.fillText(data.text,data.x,data.y);
+  }
+}
+
+function wbUndo(){
+  if(wbHistory.length===0){showToast('더 이상 되돌릴 수 없습니다');return;}
+  const snap=wbHistory.pop();
+  wbCtx.putImageData(snap,0,0);
+  sendData({type:'wb-undo'});
+}
+function wbUndoLocal(){
+  if(wbHistory.length===0) return;
+  wbCtx.putImageData(wbHistory.pop(),0,0);
+}
+function wbClear(){
+  if(!confirm('화이트보드를 지울까요?')) return;
+  wbSaveHistory();
+  wbCtx.fillStyle='#1a1a2a'; wbCtx.fillRect(0,0,wbCanvas.width,wbCanvas.height);
+  sendData({type:'wb-clear'});
+}
+function wbClearLocal(){
+  if(!wbCtx) return;
+  wbCtx.fillStyle='#1a1a2a'; wbCtx.fillRect(0,0,wbCanvas.width,wbCanvas.height);
+}
+function setWbTool(t){
+  wbTool=t;
+  document.querySelectorAll('.wb-tool-btn').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('wbt-'+t);
+  if(el) el.classList.add('active');
+  wbCanvas.style.cursor=t==='eraser'?'cell':t==='text'?'text':'crosshair';
+}
+function setWbColor(c,el){
+  wbColor=c;
+  document.querySelectorAll('.wb-color-swatch').forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── Helpers ──
+function setLobbyStatus(msg,cls){const el=document.getElementById('lobby-status');el.textContent=msg;el.className='status-msg '+(cls||'');}
+function copyId(){const id=document.getElementById('my-id-display').textContent;navigator.clipboard.writeText(id).then(()=>showToast('ID 복사됨: '+id));}
+let toastTimer;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
+
+// Resize whiteboard on window resize
+window.addEventListener('resize',()=>{if(panelOpen&&currentTab==='wb') resizeWbCanvas();});
+window.addEventListener('beforeunload', broadcastBye);
+
+// ── QUIZ ──
+const QUIZ_WORDS = [
+  // 동물
+  '강아지','고양이','코끼리','기린','펭귄','악어','독수리','상어','문어','캥거루',
+  // 음식
+  '피자','떡볶이','삼겹살','초밥','라면','치킨','아이스크림','파스타','햄버거','딸기',
+  // 직업
+  '의사','소방관','요리사','경찰','선생님','우주비행사','화가','프로게이머','마법사','탐정',
+  // 사물
+  '텔레비전','냉장고','자전거','비행기','잠수함','로켓','우산','망원경','피아노','기타',
+  // 장소
+  '놀이공원','도서관','수영장','박물관','산','바다','사막','동굴','우주정거장','피라미드',
+  // 스포츠
+  '축구','농구','야구','테니스','수영','스키','태권도','볼링','골프','양궁',
+  // 유명인·캐릭터
+  '해리포터','슈퍼맨','피카츄','도라에몽','스파이더맨','아이언맨','겨울왕국','신데렐라','마리오','루피',
+  // 행동
+  '춤추기','달리기','요리하기','노래하기','잠자기','청소하기','그림그리기','낚시','등산','수영',
+];
+
+const QUIZ_TIME = 30;
+let quizActive = false;
+let quizIsExplainer = false;
+let quizWord = '';
+let quizRound = 0;
+let quizScore = 0;
+let quizTimer = null;
+let quizSecondsLeft = QUIZ_TIME;
+let usedWords = [];
+
+function startQuiz() {
+  if (quizActive) { quizStop(); return; }
+  quizActive = true;
+  quizIsExplainer = true;
+  quizScore = 0;
+  quizRound = 0;
+  usedWords = [];
+  document.getElementById('quiz-score').textContent = 0;
+  document.getElementById('btn-quiz').classList.add('active');
+  // 위치 초기화 (하단 중앙)
+  const qo = document.getElementById('quiz-overlay');
+  qo.style.top = ''; qo.style.left = ''; qo.style.bottom = '80px'; qo.style.transform = 'translateX(-50%)';
+  // Notify peer
+  sendData({ type: 'quiz-start' });
+  quizNextWord();
+}
+
+function quizNextWord() {
+  // Pick unused random word
+  const pool = QUIZ_WORDS.filter(w => !usedWords.includes(w));
+  if (pool.length === 0) usedWords = [];
+  const pool2 = QUIZ_WORDS.filter(w => !usedWords.includes(w));
+  quizWord = pool2[Math.floor(Math.random() * pool2.length)];
+  usedWords.push(quizWord);
+  quizRound++;
+  quizSecondsLeft = QUIZ_TIME;
+
+  document.getElementById('quiz-word').textContent = quizWord;
+  document.getElementById('quiz-hint').textContent = `${quizRound}번째 문제 · ${quizWord.length}글자`;
+  document.getElementById('quiz-countdown').textContent = QUIZ_TIME;
+  updateQuizRing(QUIZ_TIME);
+  document.getElementById('quiz-ring').classList.remove('urgent');
+
+  document.getElementById('quiz-overlay').classList.add('show');
+
+  clearInterval(quizTimer);
+  quizTimer = setInterval(() => {
+    quizSecondsLeft--;
+    document.getElementById('quiz-countdown').textContent = quizSecondsLeft;
+    updateQuizRing(quizSecondsLeft);
+    if (quizSecondsLeft <= 10) document.getElementById('quiz-ring').classList.add('urgent');
+    // Sync timer to peer every second
+    sendData({ type: 'quiz-tick', round: quizRound, secondsLeft: quizSecondsLeft });
+    if (quizSecondsLeft <= 0) { quizTimeUp(); }
+  }, 1000);
+}
+
+function updateQuizRing(s) {
+  const circumference = 163;
+  const offset = circumference - (circumference * s / QUIZ_TIME);
+  document.getElementById('quiz-ring').style.strokeDashoffset = offset;
+}
+
+function quizTimeUp() {
+  clearInterval(quizTimer);
+  quizFlash('⏰');
+  sendData({ type: 'quiz-timeup', round: quizRound });
+  setTimeout(() => quizNextWord(), 1500);
+}
+
+function quizCorrect() {
+  if (!quizActive || !quizIsExplainer) return;
+  clearInterval(quizTimer);
+  quizScore++;
+  document.getElementById('quiz-score').textContent = quizScore;
+  quizFlash('✅');
+  sendData({ type: 'quiz-correct', round: quizRound, score: quizScore, word: quizWord });
+  setTimeout(() => quizNextWord(), 1200);
+}
+
+function quizSkip() {
+  if (!quizActive || !quizIsExplainer) return;
+  clearInterval(quizTimer);
+  quizFlash('⏭');
+  sendData({ type: 'quiz-skip', round: quizRound, word: quizWord });
+  setTimeout(() => quizNextWord(), 900);
+}
+
+function quizStop() {
+  clearInterval(quizTimer);
+  quizActive = false;
+  document.getElementById('quiz-overlay').classList.remove('show');
+  document.getElementById('quiz-notify').classList.remove('show');
+  document.getElementById('btn-quiz').classList.remove('active');
+  if (quizIsExplainer) {
+    sendData({ type: 'quiz-end', score: quizScore, rounds: quizRound });
+    showToast(`퀴즈 종료 — ${quizRound}문제 중 ${quizScore}개 정답!`);
+    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:`퀴즈 종료! ${quizRound}문제 중 ${quizScore}개 정답`, time:Date.now() }, true);
+  }
+  quizIsExplainer = false;
+}
+
+function quizFlash(emoji) {
+  const el = document.getElementById('quiz-flash');
+  el.textContent = emoji;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 700);
+}
+
+// Receive quiz events from peer (guesser side)
+function handleQuizData(data) {
+  if (data.type === 'quiz-start') {
+    quizActive = true;
+    quizIsExplainer = false;
+    quizRound = 0;
+    // 위치 초기화 (하단 중앙)
+    const qn = document.getElementById('quiz-notify');
+    qn.style.top = ''; qn.style.left = ''; qn.style.bottom = '80px'; qn.style.transform = 'translateX(-50%)';
+    showToast('🎯 퀴즈 시작! 상대방이 설명하는 단어를 맞춰보세요');
+    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:'퀴즈가 시작됩니다! 상대방의 설명을 듣고 채팅으로 답하세요', time:Date.now() }, false);
+  } else if (data.type === 'quiz-tick') {
+    quizRound = data.round;
+    document.getElementById('quiz-notify').classList.add('show');
+    document.getElementById('quiz-notify-round').textContent = `${data.round}번째 문제`;
+    document.getElementById('quiz-notify-timer').textContent = data.secondsLeft;
+    document.getElementById('quiz-notify-timer').style.color = data.secondsLeft <= 10 ? '#f55' : '#fff';
+  } else if (data.type === 'quiz-correct') {
+    showToast(`✅ 정답! "${data.word}" (${data.score}점)`);
+    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:`정답! 단어는 "${data.word}"이었습니다 🎉 (${data.score}점)`, time:Date.now() }, false);
+  } else if (data.type === 'quiz-skip') {
+    showToast(`⏭ 넘어감 — 단어: "${data.word}"`);
+    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:`패스! 단어는 "${data.word}"이었습니다`, time:Date.now() }, false);
+  } else if (data.type === 'quiz-timeup') {
+    showToast('⏰ 시간 초과!');
+  } else if (data.type === 'quiz-end') {
+    quizActive = false;
+    document.getElementById('quiz-notify').classList.remove('show');
+    showToast(`퀴즈 종료 — ${data.rounds}문제 중 ${data.score}개 정답!`);
+    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:`퀴즈 종료! 총 ${data.rounds}문제 중 ${data.score}개 정답`, time:Date.now() }, false);
+  }
+}
+
+// ── Quiz notify drag ──
+(function(){
+  const el = document.getElementById('quiz-notify');
+  let dragging = false, ox = 0, oy = 0;
+
+  el.addEventListener('mousedown', e => {
+    dragging = true;
+    const rect = el.getBoundingClientRect();
+    el.style.bottom = 'auto';
+    el.style.transform = 'none';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    ox = e.clientX - rect.left;
+    oy = e.clientY - rect.top;
+    el.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const parent = el.parentElement.getBoundingClientRect();
+    let nx = e.clientX - parent.left - ox;
+    let ny = e.clientY - parent.top - oy;
+    nx = Math.max(0, Math.min(nx, parent.width - el.offsetWidth));
+    ny = Math.max(0, Math.min(ny, parent.height - el.offsetHeight));
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove('dragging');
+  });
+
+  el.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    dragging = true;
+    const rect = el.getBoundingClientRect();
+    el.style.bottom = 'auto';
+    el.style.transform = 'none';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    ox = t.clientX - rect.left;
+    oy = t.clientY - rect.top;
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    const parent = el.parentElement.getBoundingClientRect();
+    let nx = t.clientX - parent.left - ox;
+    let ny = t.clientY - parent.top - oy;
+    nx = Math.max(0, Math.min(nx, parent.width - el.offsetWidth));
+    ny = Math.max(0, Math.min(ny, parent.height - el.offsetHeight));
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => { dragging = false; });
+})();
+
+// ── Quiz overlay drag ──
+(function(){
+  const el = document.getElementById('quiz-overlay');
+  const handle = el.querySelector('.quiz-header');
+  let dragging = false, ox = 0, oy = 0;
+
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    // Switch from bottom/transform positioning to top/left absolute
+    const rect = el.getBoundingClientRect();
+    el.style.bottom = 'auto';
+    el.style.transform = 'none';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    ox = e.clientX - rect.left;
+    oy = e.clientY - rect.top;
+    el.classList.add('dragging');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const parent = el.parentElement.getBoundingClientRect();
+    let nx = e.clientX - parent.left - ox;
+    let ny = e.clientY - parent.top - oy;
+    nx = Math.max(0, Math.min(nx, parent.width - el.offsetWidth));
+    ny = Math.max(0, Math.min(ny, parent.height - el.offsetHeight));
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove('dragging');
+  });
+
+  // Touch support
+  handle.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    dragging = true;
+    const rect = el.getBoundingClientRect();
+    el.style.bottom = 'auto';
+    el.style.transform = 'none';
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.top + 'px';
+    ox = t.clientX - rect.left;
+    oy = t.clientY - rect.top;
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    const t = e.touches[0];
+    const parent = el.parentElement.getBoundingClientRect();
+    let nx = t.clientX - parent.left - ox;
+    let ny = t.clientY - parent.top - oy;
+    nx = Math.max(0, Math.min(nx, parent.width - el.offsetWidth));
+    ny = Math.max(0, Math.min(ny, parent.height - el.offsetHeight));
+    el.style.left = nx + 'px';
+    el.style.top = ny + 'px';
+    e.preventDefault();
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => { dragging = false; });
+})();
+
+// ── Boot ──
+setLobbyStatus('서버에 연결 중...','');
+initPeer();
+</script>
+</body>
+</html>
