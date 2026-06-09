@@ -1374,127 +1374,26 @@ async function togglePreCam(){
   const btn=document.getElementById('cam-toggle');
   if(!preCamOn){
     try{
-      // 카메라 열기 시도 — 이미 다른 탭이 점유 중이면 자동으로 대체 스트림 사용
-      preStream=await openCameraStream();
+      preStream=await navigator.mediaDevices.getUserMedia({video:{facingMode},audio:preMicOn});
       document.getElementById('preview-vid').srcObject=preStream;
       document.getElementById('preview-ph').style.display='none';
       preCamOn=true; btn.classList.add('on');
     }catch(e){showToast(T('noPermission'));}
   }else{
-    stopPreStream();
+    if(preStream) preStream.getVideoTracks().forEach(t=>t.stop());
     document.getElementById('preview-vid').srcObject=null;
     document.getElementById('preview-ph').style.display='flex';
     preCamOn=false; btn.classList.remove('on');
   }
 }
-
 async function togglePreMic(){
   preMicOn=!preMicOn;
   document.getElementById('mic-toggle').classList.toggle('on',preMicOn);
 }
-
-// ── 카메라 스트림 공유 지원 ──
-// 같은 PC 1개 카메라를 탭 2개에서 모두 사용 가능하게 처리
-let canvasFallbackStream=null;
-let canvasFallbackInterval=null;
-
-async function openCameraStream(){
-  // 1차: 실제 카메라 시도
-  try{
-    const s=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode,width:{ideal:1280},height:{ideal:720}},
-      audio:true
-    });
-    return s;
-  }catch(err){
-    // NotReadableError = 다른 탭이 이미 카메라 점유 중
-    if(err.name==='NotReadableError'||err.name==='TrackStartError'||err.message?.includes('Could not start')){
-      return createCanvasFallbackStream();
-    }
-    throw err;
-  }
-}
-
-function createCanvasFallbackStream(){
-  // 카메라 대신 Canvas로 "탭2 (카메라 없음)" 표시 화면 생성
-  const canvas=document.createElement('canvas');
-  canvas.width=640; canvas.height=360;
-  const ctx=canvas.getContext('2d');
-
-  function drawFrame(){
-    // 그라데이션 배경
-    const grad=ctx.createLinearGradient(0,0,640,360);
-    grad.addColorStop(0,'#1a1a2e');
-    grad.addColorStop(1,'#16213e');
-    ctx.fillStyle=grad;
-    ctx.fillRect(0,0,640,360);
-    // 아바타 원
-    const initials=(loggedInUser||'?').charAt(0).toUpperCase();
-    ctx.beginPath();
-    ctx.arc(320,155,60,0,Math.PI*2);
-    ctx.fillStyle='rgba(79,142,247,0.25)';
-    ctx.fill();
-    ctx.strokeStyle='rgba(79,142,247,0.5)';
-    ctx.lineWidth=2;
-    ctx.stroke();
-    // 이니셜 텍스트
-    ctx.fillStyle='#4f8ef7';
-    ctx.font='bold 52px -apple-system, sans-serif';
-    ctx.textAlign='center';
-    ctx.textBaseline='middle';
-    ctx.fillText(initials,320,155);
-    // 이름
-    ctx.fillStyle='rgba(255,255,255,0.85)';
-    ctx.font='600 18px -apple-system, sans-serif';
-    ctx.fillText(loggedInUser||'Unknown',320,240);
-    // 안내 문구
-    ctx.fillStyle='rgba(255,255,255,0.35)';
-    ctx.font='13px -apple-system, sans-serif';
-    ctx.fillText('카메라 공유 모드',320,270);
-    // 시간
-    ctx.fillStyle='rgba(255,255,255,0.2)';
-    ctx.font='12px monospace';
-    ctx.fillText(new Date().toLocaleTimeString(),320,300);
-  }
-
-  drawFrame();
-  canvasFallbackInterval=setInterval(drawFrame,1000);
-  canvasFallbackStream=canvas.captureStream(15); // 15fps
-
-  // 마이크 오디오 붙이기
-  return navigator.mediaDevices.getUserMedia({audio:true,video:false})
-    .then(audioStream=>{
-      audioStream.getAudioTracks().forEach(t=>canvasFallbackStream.addTrack(t));
-      return canvasFallbackStream;
-    })
-    .catch(()=>canvasFallbackStream); // 마이크도 없으면 그냥 canvas만
-}
-
-function stopPreStream(){
-  if(preStream){
-    preStream.getVideoTracks().forEach(t=>t.stop());
-    preStream=null;
-  }
-  if(canvasFallbackInterval){
-    clearInterval(canvasFallbackInterval);
-    canvasFallbackInterval=null;
-  }
-}
-
 async function getLocalStream(){
   if(localStream) return localStream;
-  if(preCamOn && preStream){
-    // 미리보기 스트림을 그대로 통화에 재사용 (카메라 재오픈 방지)
-    localStream=preStream;
-    preStream=null; // 소유권 이전
-    return localStream;
-  }
-  try{
-    localStream=await openCameraStream();
-  }catch(e){
-    try{ localStream=await navigator.mediaDevices.getUserMedia({video:false,audio:true}); }
-    catch(e2){ localStream=new MediaStream(); }
-  }
+  try{ localStream=await navigator.mediaDevices.getUserMedia({video:preCamOn?{facingMode}:false,audio:true}); }
+  catch(e){ try{ localStream=await navigator.mediaDevices.getUserMedia({video:false,audio:true}); }catch(e2){ localStream=new MediaStream(); } }
   return localStream;
 }
 function goReady(){
@@ -1556,13 +1455,7 @@ function rejectCall(){
   showToast(T('callRejected'));
 }
 function enterCallScreen(stream){
-  // preStream이 이미 localStream으로 재사용됐으면 정지하지 않음
-  if(preStream && preStream!==stream && preStream!==localStream){
-    stopPreStream();
-  } else {
-    preStream=null;
-    if(canvasFallbackInterval){clearInterval(canvasFallbackInterval);canvasFallbackInterval=null;}
-  }
+  if(preStream){preStream.getTracks().forEach(t=>t.stop());preStream=null;}
   document.getElementById('local-vid').srcObject=stream;
   document.getElementById('lobby').style.display='none';
   document.getElementById('call-screen').style.display='block';
@@ -1624,8 +1517,6 @@ async function flipCamera(){
 function hangUp(){if(currentCall)currentCall.close();endCallCleanup();}
 function endCallCleanup(){
   clearInterval(timerInterval);timerInterval=null;elapsed=0;
-  if(canvasFallbackInterval){clearInterval(canvasFallbackInterval);canvasFallbackInterval=null;}
-  if(canvasFallbackStream){canvasFallbackStream.getTracks().forEach(t=>t.stop());canvasFallbackStream=null;}
   if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
   if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
   if(dataConn){dataConn.close();dataConn=null;}
