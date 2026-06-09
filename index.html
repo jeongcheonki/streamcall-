@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>StreamCall — 영상통화</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -17,7 +19,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 svg.ic{display:inline-block;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 
 /* ── LOBBY ── */
-#lobby{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+#lobby{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;padding-top:5rem;}
 .lobby-wrap{width:100%;max-width:440px;display:flex;flex-direction:column;gap:1.5rem;}
 .logo{display:flex;align-items:center;gap:12px;justify-content:center;}
 .logo-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:22px;}
@@ -247,9 +249,234 @@ input[type=text]:focus{border-color:var(--accent);}
   .ctrl-btn{width:40px;height:40px;}
   .end-btn{width:48px;height:48px;}
 }
+
+/* ── AUTH SCREENS ── */
+#auth-screen{
+  position:fixed;inset:0;z-index:999;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;padding:2rem;
+}
+.auth-wrap{width:100%;max-width:380px;display:flex;flex-direction:column;gap:1.5rem;}
+.auth-logo{display:flex;align-items:center;gap:12px;justify-content:center;}
+.auth-logo-icon{width:50px;height:50px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px;}
+.auth-logo-text{font-size:23px;font-weight:700;letter-spacing:-.5px;}
+.auth-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.8rem;display:flex;flex-direction:column;gap:1.1rem;}
+.auth-title{font-size:18px;font-weight:700;text-align:center;letter-spacing:-.3px;}
+.auth-subtitle{font-size:13px;color:var(--text2);text-align:center;margin-top:-6px;}
+.auth-field{display:flex;flex-direction:column;gap:6px;}
+.auth-field label{font-size:12px;color:var(--text2);}
+.auth-input{
+  width:100%;background:var(--bg);border:0.5px solid var(--border);
+  border-radius:8px;color:var(--text);font-size:15px;padding:11px 14px;
+  outline:none;transition:border-color .2s;
+}
+.auth-input:focus{border-color:var(--accent);}
+.auth-input.error-field{border-color:#f55;}
+.auth-btn{
+  width:100%;padding:13px;border-radius:9px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px;
+}
+.auth-btn:hover{filter:brightness(1.1);}
+.auth-btn:active{transform:scale(.98);}
+.auth-btn:disabled{opacity:.4;cursor:not-allowed;}
+.auth-switch{text-align:center;font-size:13px;color:var(--text2);}
+.auth-switch a{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600;}
+.auth-switch a:hover{text-decoration:underline;}
+.auth-error{font-size:12px;color:#f55;text-align:center;min-height:16px;}
+.auth-success{font-size:12px;color:var(--green);text-align:center;min-height:16px;}
+.auth-divider{display:flex;align-items:center;gap:10px;color:var(--text3);font-size:11px;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:0.5px;background:var(--border);}
+.auth-user-bar{
+  background:var(--bg2);border-bottom:0.5px solid var(--border);
+  padding:10px 20px;display:flex;align-items:center;justify-content:space-between;
+  position:fixed;top:0;left:0;right:0;z-index:100;
+}
+.auth-user-info{display:flex;align-items:center;gap:10px;}
+.auth-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+.auth-username{font-size:14px;font-weight:600;}
+.auth-logout-btn{background:none;border:0.5px solid var(--border);border-radius:6px;color:var(--text2);padding:5px 12px;font-size:12px;cursor:pointer;transition:.15s;}
+.auth-logout-btn:hover{background:rgba(220,0,34,.15);color:#f55;border-color:rgba(220,0,34,.3);}
+.pw-wrap{position:relative;}
+.pw-wrap .auth-input{padding-right:42px;}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;padding:4px;display:flex;align-items:center;}
+.pw-toggle:hover{color:var(--text2);}
+.strength-bar{height:3px;border-radius:2px;background:var(--bg3);overflow:hidden;margin-top:4px;}
+.strength-fill{height:100%;border-radius:2px;transition:width .3s,background .3s;}
+
+/* ── LANGUAGE SELECT SCREEN ── */
+#lang-screen{
+  position:fixed;inset:0;z-index:998;background:var(--bg);
+  display:none;align-items:center;justify-content:center;padding:2rem;
+}
+.lang-wrap{width:100%;max-width:500px;display:flex;flex-direction:column;align-items:center;gap:1.6rem;}
+.lang-hello{font-size:15px;color:var(--text2);text-align:center;}
+.lang-hello strong{color:var(--text);}
+.lang-title-txt{font-size:20px;font-weight:700;text-align:center;letter-spacing:-.3px;}
+.lang-subtitle{font-size:13px;color:var(--text3);text-align:center;margin-top:-8px;}
+.lang-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;width:100%;}
+.lang-btn{
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:16px 10px;border-radius:14px;
+  border:1.5px solid var(--border);background:var(--bg2);
+  cursor:pointer;transition:.18s;position:relative;
+}
+.lang-btn:hover{border-color:var(--accent);background:rgba(79,142,247,.07);}
+.lang-btn.selected{
+  border-color:var(--accent);background:rgba(79,142,247,.14);
+  box-shadow:0 0 0 3px rgba(79,142,247,.18);
+}
+.lang-flag{font-size:28px;line-height:1;}
+.lang-name{font-size:13px;font-weight:700;color:var(--text);}
+.lang-native{font-size:11px;color:var(--text2);}
+.lang-check{
+  position:absolute;top:8px;right:8px;
+  width:18px;height:18px;border-radius:50%;background:var(--accent);
+  display:none;align-items:center;justify-content:center;
+}
+.lang-btn.selected .lang-check{display:flex;}
+.lang-confirm{
+  width:100%;padding:13px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.2s;
+  opacity:.35;pointer-events:none;
+}
+.lang-confirm.ready{opacity:1;pointer-events:all;}
+.lang-confirm.ready:hover{filter:brightness(1.1);}
+.lang-change-btn{
+  background:none;border:0.5px solid var(--border);border-radius:6px;
+  color:var(--text2);padding:5px 10px;font-size:12px;cursor:pointer;transition:.15s;
+  display:flex;align-items:center;gap:5px;
+}
+.lang-change-btn:hover{background:var(--bg3);color:var(--text);}
 </style>
 </head>
 <body>
+
+<!-- ── AUTH SCREEN ── -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg class="ic" width="26" height="26" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      </div>
+      <span class="auth-logo-text">StreamCall</span>
+    </div>
+
+    <!-- 로그인 폼 -->
+    <div class="auth-card" id="login-form">
+      <div class="auth-title">로그인</div>
+      <div class="auth-subtitle">계정에 로그인하여 통화를 시작하세요</div>
+      <div class="auth-field">
+        <label>아이디</label>
+        <input class="auth-input" type="text" id="login-id" placeholder="아이디 입력" autocomplete="username"
+          onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()"/>
+      </div>
+      <div class="auth-field">
+        <label>비밀번호</label>
+        <div class="pw-wrap">
+          <input class="auth-input" type="password" id="login-pw" placeholder="비밀번호 입력" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()"/>
+          <button class="pw-toggle" onclick="togglePw('login-pw',this)" tabindex="-1">
+            <svg class="ic" width="16" height="16" viewBox="0 0 24 24" id="eye-login"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="auth-error" id="login-error"></div>
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">로그인</button>
+      <div class="auth-divider">또는</div>
+      <div class="auth-switch">계정이 없으신가요? <a onclick="showRegister()">회원가입</a></div>
+    </div>
+
+    <!-- 회원가입 폼 -->
+    <div class="auth-card" id="register-form" style="display:none;">
+      <div class="auth-title">회원가입</div>
+      <div class="auth-subtitle">아이디와 비밀번호만으로 가입하세요</div>
+      <div class="auth-field">
+        <label>아이디 <span style="color:var(--text3);font-size:11px">(영문·숫자 4~20자)</span></label>
+        <input class="auth-input" type="text" id="reg-id" placeholder="사용할 아이디 입력" autocomplete="username"
+          oninput="checkRegId()" onkeydown="if(event.key==='Enter')document.getElementById('reg-pw').focus()"/>
+        <div class="auth-error" id="reg-id-msg"></div>
+      </div>
+      <div class="auth-field">
+        <label>비밀번호 <span style="color:var(--text3);font-size:11px">(6자 이상)</span></label>
+        <div class="pw-wrap">
+          <input class="auth-input" type="password" id="reg-pw" placeholder="비밀번호 입력" autocomplete="new-password"
+            oninput="checkPwStrength()" onkeydown="if(event.key==='Enter')document.getElementById('reg-pw2').focus()"/>
+          <button class="pw-toggle" onclick="togglePw('reg-pw',this)" tabindex="-1">
+            <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill" style="width:0%"></div></div>
+      </div>
+      <div class="auth-field">
+        <label>비밀번호 확인</label>
+        <div class="pw-wrap">
+          <input class="auth-input" type="password" id="reg-pw2" placeholder="비밀번호 재입력" autocomplete="new-password"
+            onkeydown="if(event.key==='Enter')doRegister()"/>
+          <button class="pw-toggle" onclick="togglePw('reg-pw2',this)" tabindex="-1">
+            <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="auth-error" id="reg-error"></div>
+      <div class="auth-success" id="reg-success"></div>
+      <button class="auth-btn" id="reg-btn" onclick="doRegister()">가입하기</button>
+      <div class="auth-divider">또는</div>
+      <div class="auth-switch">이미 계정이 있으신가요? <a onclick="showLogin()">로그인</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- 로그인된 사용자 바 (로비/통화 화면에 표시) -->
+<div class="auth-user-bar" id="user-bar" style="display:none;">
+  <div class="auth-user-info">
+    <div class="auth-avatar" id="user-avatar">?</div>
+    <span class="auth-username" id="user-bar-name">-</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="lang-change-btn" id="lang-flag-btn" onclick="openLangScreen(true)">
+      <span id="user-bar-flag">🌐</span>
+      <span id="user-bar-lang">언어</span>
+    </button>
+    <button class="auth-logout-btn" onclick="doLogout()">로그아웃</button>
+  </div>
+</div>
+
+<!-- ── 언어 선택 화면 ── -->
+<div id="lang-screen">
+  <div class="lang-wrap">
+    <p class="lang-hello" id="lang-hello">안녕하세요, <strong id="lang-hello-name"></strong>!</p>
+    <div class="lang-title-txt">사용할 언어를 선택하세요</div>
+    <div class="lang-subtitle">Select your language · 言語を選択 · 选择语言</div>
+    <div class="lang-grid">
+      <button class="lang-btn" id="lb-ko" onclick="selectLang('ko')">
+        <div class="lang-check"><svg style="width:10px;height:10px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="lang-flag">🇰🇷</span><span class="lang-name">한국어</span><span class="lang-native">Korean</span>
+      </button>
+      <button class="lang-btn" id="lb-en" onclick="selectLang('en')">
+        <div class="lang-check"><svg style="width:10px;height:10px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="lang-flag">🇺🇸</span><span class="lang-name">English</span><span class="lang-native">English</span>
+      </button>
+      <button class="lang-btn" id="lb-ja" onclick="selectLang('ja')">
+        <div class="lang-check"><svg style="width:10px;height:10px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="lang-flag">🇯🇵</span><span class="lang-name">日本語</span><span class="lang-native">Japanese</span>
+      </button>
+      <button class="lang-btn" id="lb-zh" onclick="selectLang('zh')">
+        <div class="lang-check"><svg style="width:10px;height:10px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="lang-flag">🇨🇳</span><span class="lang-name">中文</span><span class="lang-native">Chinese</span>
+      </button>
+      <button class="lang-btn" id="lb-es" onclick="selectLang('es')">
+        <div class="lang-check"><svg style="width:10px;height:10px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="lang-flag">🇪🇸</span><span class="lang-name">Español</span><span class="lang-native">Spanish</span>
+      </button>
+      <button class="lang-btn" id="lb-fr" onclick="selectLang('fr')">
+        <div class="lang-check"><svg style="width:10px;height:10px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <span class="lang-flag">🇫🇷</span><span class="lang-name">Français</span><span class="lang-native">French</span>
+      </button>
+    </div>
+    <button class="lang-confirm" id="lang-confirm" onclick="confirmLang()">시작하기</button>
+  </div>
+</div>
 
 <!-- ── LOBBY ── -->
 <div id="lobby">
@@ -262,41 +489,43 @@ input[type=text]:focus{border-color:var(--accent);}
     </div>
     <div class="card">
       <div>
-        <label>내 이름</label>
+        <label id="lobby-name-label">내 이름</label>
         <input type="text" id="my-name" placeholder="이름 입력" autocomplete="off"/>
       </div>
       <div>
-        <label>카메라 미리보기</label>
+        <label id="cam-preview-label">카메라 미리보기</label>
         <div class="preview-box">
           <video id="preview-vid" autoplay muted playsinline></video>
           <div class="preview-placeholder" id="preview-ph">
             <svg class="ic" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-            <span>카메라 켜기 버튼을 누르세요</span>
+            <span id="cam-hint-txt">카메라 켜기 버튼을 누르세요</span>
           </div>
         </div>
       </div>
       <div class="btn-row">
         <button class="btn-toggle" id="cam-toggle" onclick="togglePreCam()">
-          <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> 카메라
+          <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          <span id="cam-btn-txt">카메라</span>
         </button>
         <button class="btn-toggle" id="mic-toggle" onclick="togglePreMic()">
-          <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 마이크
+          <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <span id="mic-btn-txt">마이크</span>
         </button>
       </div>
       <p class="status-msg" id="lobby-status">준비 중...</p>
       <button class="btn-primary" id="ready-btn" onclick="goReady()" disabled>입장하기</button>
     </div>
-    <div class="divider">내 통화 ID</div>
+    <div class="divider"><span id="my-id-label">이 ID를 상대방에게 공유하세요</span></div>
     <div class="id-box">
       <div>
-        <div class="id-label">이 ID를 상대방에게 공유하세요</div>
+        <div class="id-label" id="my-id-label2">이 ID를 상대방에게 공유하세요</div>
         <div class="id-value" id="my-id-display">----</div>
       </div>
-      <button class="copy-btn" onclick="copyId()">복사</button>
+      <button class="copy-btn" id="copy-btn" onclick="copyId()">복사</button>
     </div>
     <div class="card">
       <div>
-        <label>상대방 ID로 전화 걸기</label>
+        <label id="call-label">상대방 ID로 전화 걸기</label>
         <input type="text" id="peer-id-input" placeholder="상대방 ID 입력 (예: 1234)" autocomplete="off" onkeydown="if(event.key==='Enter')callPeer()"/>
       </div>
       <button class="btn-primary" id="call-btn" onclick="callPeer()" disabled>📞 &nbsp;전화 걸기</button>
@@ -325,22 +554,22 @@ input[type=text]:focus{border-color:var(--accent);}
           <video id="local-vid" autoplay muted playsinline></video>
           <div class="pip-cam-off" id="pip-cam-off">
             <svg class="ic" viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/></svg>
-            카메라 꺼짐
+            <span id="pip-cam-off-txt">카메라 꺼짐</span>
           </div>
-          <div class="vid-label">나</div>
+          <div class="vid-label" id="local-vid-label">나</div>
         </div>
       </div>
       <div class="hud-top">
-        <div class="badge"><span class="dot"></span> 연결됨</div>
+        <div class="badge"><span class="dot"></span> <span id="connected-badge-txt">연결됨</span></div>
         <div class="badge" id="timer-badge">00:00</div>
       </div>
 
-      <!-- 퀴즈 오버레이 (설명자에게만 보임) -->
+      <!-- 퀴즈 오버레이 -->
       <div id="quiz-overlay">
         <div class="quiz-card">
           <div class="quiz-header">
-            <span class="quiz-title">🎯 퀴즈 — 설명하세요!</span>
-            <span class="quiz-score-badge">점수: <span id="quiz-score">0</span></span>
+            <span class="quiz-title" id="quiz-title-txt">🎯 퀴즈 — 설명하세요!</span>
+            <span class="quiz-score-badge"><span id="quiz-score-label">점수: </span><span id="quiz-score">0</span></span>
           </div>
           <div class="quiz-timer-wrap">
             <svg class="quiz-timer-svg" width="64" height="64" viewBox="0 0 64 64">
@@ -352,26 +581,26 @@ input[type=text]:focus{border-color:var(--accent);}
           <div class="quiz-word" id="quiz-word">—</div>
           <div class="quiz-hint" id="quiz-hint"></div>
           <div class="quiz-actions">
-            <button class="quiz-btn correct" onclick="quizCorrect()">✅ 정답!</button>
-            <button class="quiz-btn skip" onclick="quizSkip()">⏭ 넘기기</button>
-            <button class="quiz-btn stop" onclick="quizStop()">⏹ 종료</button>
+            <button class="quiz-btn correct" id="quiz-correct-btn" onclick="quizCorrect()">✅ 정답!</button>
+            <button class="quiz-btn skip" id="quiz-skip-btn" onclick="quizSkip()">⏭ 넘기기</button>
+            <button class="quiz-btn stop" id="quiz-stop-btn" onclick="quizStop()">⏹ 종료</button>
           </div>
           <div class="quiz-result-flash" id="quiz-flash"></div>
         </div>
       </div>
 
-      <!-- 퀴즈 진행 알림 (맞추는 사람에게 보임) -->
+      <!-- 퀴즈 알림 (맞추는 사람) -->
       <div class="quiz-notify" id="quiz-notify">
         <div class="quiz-notify-card">
-          <p>상대방이 설명하는 단어를 맞춰보세요!</p>
+          <p id="quiz-guesser-txt">상대방이 설명하는 단어를 맞춰보세요!</p>
           <strong id="quiz-notify-round">1번째 문제</strong>
           <div class="quiz-notify-timer" id="quiz-notify-timer">30</div>
         </div>
       </div>
-      <!-- Controls bar inside video stage -->
+      <!-- Controls bar -->
       <div class="controls">
         <div class="peer-info">
-          <span>통화 중</span>
+          <span id="inCall-label">통화 중</span>
           <strong id="peer-name-disp">상대방</strong>
         </div>
         <div class="ctrl-center">
@@ -394,15 +623,15 @@ input[type=text]:focus{border-color:var(--accent);}
         <div class="side-btns">
           <button class="side-btn" id="btn-chat" onclick="togglePanel('chat')">
             <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            채팅<span class="unread-badge" id="unread-badge" style="display:none">0</span>
+            <span id="chat-btn-txt">채팅</span><span class="unread-badge" id="unread-badge" style="display:none">0</span>
           </button>
           <button class="side-btn" id="btn-wb" onclick="togglePanel('wb')">
             <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            화이트보드
+            <span id="wb-btn-txt">화이트보드</span>
           </button>
           <button class="side-btn quiz-start-btn" id="btn-quiz" onclick="startQuiz()">
             <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            퀴즈 시작
+            <span id="quiz-btn-txt">퀴즈 시작</span>
           </button>
         </div>
       </div>
@@ -413,11 +642,11 @@ input[type=text]:focus{border-color:var(--accent);}
       <div class="panel-tabs">
         <button class="tab-btn active" id="tab-chat" onclick="switchTab('chat')">
           <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          채팅
+          <span id="tab-chat-txt">채팅</span>
         </button>
         <button class="tab-btn" id="tab-wb" onclick="switchTab('wb')">
           <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          화이트보드
+          <span id="tab-wb-txt">화이트보드</span>
         </button>
         <button class="panel-close" onclick="closePanel()">
           <svg class="ic" width="16" height="16" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -443,18 +672,18 @@ input[type=text]:focus{border-color:var(--accent);}
       <div class="wb-pane" id="wb-pane">
         <div class="wb-toolbar">
           <button class="wb-tool-btn active" id="wbt-pen" onclick="setWbTool('pen')">
-            <svg class="ic" width="12" height="12" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>펜
+            <svg class="ic" width="12" height="12" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span id="wbt-pen-txt">펜</span>
           </button>
           <button class="wb-tool-btn" id="wbt-eraser" onclick="setWbTool('eraser')">
-            <svg class="ic" width="12" height="12" viewBox="0 0 24 24"><polyline points="20 20 8 20"/><path d="M8.5 12.5L4 17l3 3 9.5-9.5"/><path d="M15 7l2 2"/></svg>지우개
+            <svg class="ic" width="12" height="12" viewBox="0 0 24 24"><polyline points="20 20 8 20"/><path d="M8.5 12.5L4 17l3 3 9.5-9.5"/><path d="M15 7l2 2"/></svg><span id="wbt-eraser-txt">지우개</span>
           </button>
           <button class="wb-tool-btn" id="wbt-line" onclick="setWbTool('line')">직선</button>
           <button class="wb-tool-btn" id="wbt-rect" onclick="setWbTool('rect')">사각형</button>
           <button class="wb-tool-btn" id="wbt-circle" onclick="setWbTool('circle')">원</button>
           <button class="wb-tool-btn" id="wbt-text" onclick="setWbTool('text')">텍스트</button>
           <div style="flex:1"></div>
-          <button class="wb-tool-btn" onclick="wbUndo()" title="실행 취소">↩</button>
-          <button class="wb-tool-btn" onclick="wbClear()" style="color:#f55">지우기</button>
+          <button class="wb-tool-btn" id="wb-undo-btn" onclick="wbUndo()" title="실행 취소">↩</button>
+          <button class="wb-tool-btn" id="wb-clear-btn" onclick="wbClear()" style="color:#f55">지우기</button>
         </div>
         <div class="wb-toolbar" style="padding-top:4px;padding-bottom:8px;">
           <!-- Colors -->
@@ -468,7 +697,7 @@ input[type=text]:focus{border-color:var(--accent);}
           <div class="wb-color-swatch" style="background:#fd79a8" onclick="setWbColor('#fd79a8',this)" title="분홍색"></div>
           <div style="flex:1"></div>
           <div class="wb-size-row">
-            굵기 <input type="range" id="wb-size" min="1" max="20" value="3" oninput="wbSize=this.value">
+            <span id="wb-size-label">굵기</span> <input type="range" id="wb-size" min="1" max="20" value="3" oninput="wbSize=this.value">
           </div>
         </div>
         <div class="wb-canvas-wrap">
@@ -484,7 +713,7 @@ input[type=text]:focus{border-color:var(--accent);}
   <div class="incoming-card">
     <div class="ring-avatar" id="ring-avatar">?</div>
     <div class="incoming-name" id="incoming-name">알 수 없음</div>
-    <div class="incoming-sub">영상통화가 걸려왔습니다</div>
+    <div class="incoming-sub" id="incoming-sub">영상통화가 걸려왔습니다</div>
     <div class="incoming-btns">
       <button class="incoming-accept" onclick="acceptCall()">
         <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.29 6.29l1.31-1.31a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -499,6 +728,594 @@ input[type=text]:focus{border-color:var(--accent);}
 <div class="toast" id="toast"></div>
 
 <script>
+// ── FIREBASE AUTH ──
+// ※ 아래 firebaseConfig를 본인의 Firebase 프로젝트 값으로 교체하세요
+const firebaseConfig = {
+  apiKey: "AIzaSyCQkCvQ0ZZqg2ch5RihfaFDJj6YelEU8Gg",
+  authDomain: "streamcall-448ba.firebaseapp.com",
+  projectId: "streamcall-448ba",
+  storageBucket: "streamcall-448ba.firebasestorage.app",
+  messagingSenderId: "554038471169",
+  appId: "1:554038471169:web:f586a79972fc4950966e00"
+};
+
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+// 한국어 설정
+fbAuth.languageCode = 'ko';
+
+let loggedInUser  = null;   // 아이디(displayName)
+let loggedInEmail = null;   // 내부용 이메일
+
+// 아이디 → 이메일 변환 (Firebase Auth는 이메일 기반)
+const FAKE_DOMAIN = '@streamcall.app';
+function idToEmail(id) { return id.toLowerCase() + FAKE_DOMAIN; }
+
+// ── 유효성 검사 ──
+function isValidId(id) { return /^[a-zA-Z0-9가-힣]{2,20}$/.test(id); }
+function isValidPw(pw) { return pw.length >= 6; }
+
+// ── 화면 전환 ──
+function showRegister() {
+  document.getElementById('login-form').style.display   = 'none';
+  document.getElementById('register-form').style.display = 'flex';
+  document.getElementById('reg-id').focus();
+  clearAuthMsgs();
+}
+function showLogin() {
+  document.getElementById('register-form').style.display = 'none';
+  document.getElementById('login-form').style.display    = 'flex';
+  document.getElementById('login-id').focus();
+  clearAuthMsgs();
+}
+function clearAuthMsgs() {
+  ['login-error','reg-error','reg-success','reg-id-msg'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; }
+  });
+  document.querySelectorAll('.auth-input').forEach(el => el.classList.remove('error-field'));
+}
+function setAuthLoading(formId, loading) {
+  const btn = document.getElementById(formId === 'login' ? 'login-btn' : 'reg-btn');
+  btn.disabled = loading;
+  btn.textContent = loading ? '처리 중...' : (formId === 'login' ? '로그인' : '가입하기');
+}
+
+// ── 회원가입 ──
+async function doRegister() {
+  const id  = document.getElementById('reg-id').value.trim();
+  const pw  = document.getElementById('reg-pw').value;
+  const pw2 = document.getElementById('reg-pw2').value;
+  const errEl = document.getElementById('reg-error');
+  const okEl  = document.getElementById('reg-success');
+  errEl.textContent = ''; okEl.textContent = '';
+
+  if (!isValidId(id)) {
+    errEl.textContent = '아이디는 영문·숫자·한글 2~20자로 입력하세요.';
+    document.getElementById('reg-id').classList.add('error-field'); return;
+  }
+  if (!isValidPw(pw)) {
+    errEl.textContent = '비밀번호는 6자 이상이어야 합니다.';
+    document.getElementById('reg-pw').classList.add('error-field'); return;
+  }
+  if (pw !== pw2) {
+    errEl.textContent = '비밀번호가 일치하지 않습니다.';
+    document.getElementById('reg-pw2').classList.add('error-field'); return;
+  }
+
+  setAuthLoading('reg', true);
+  try {
+    const email = idToEmail(id);
+    const cred  = await fbAuth.createUserWithEmailAndPassword(email, pw);
+    // displayName에 원래 아이디 저장
+    await cred.user.updateProfile({ displayName: id });
+    okEl.textContent = '🎉 가입 완료!';
+    setTimeout(() => {
+      document.getElementById('login-id').value = id;
+      document.getElementById('login-pw').value = '';
+      document.getElementById('reg-id').value   = '';
+      document.getElementById('reg-pw').value   = '';
+      document.getElementById('reg-pw2').value  = '';
+      showLogin();
+    }, 1000);
+  } catch (e) {
+    errEl.textContent = firebaseErrMsg(e.code);
+  } finally {
+    setAuthLoading('reg', false);
+  }
+}
+
+// ── 로그인 ──
+async function doLogin() {
+  const id  = document.getElementById('login-id').value.trim();
+  const pw  = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  if (!id) { errEl.textContent = '아이디를 입력하세요.'; document.getElementById('login-id').classList.add('error-field'); return; }
+  if (!pw) { errEl.textContent = '비밀번호를 입력하세요.'; document.getElementById('login-pw').classList.add('error-field'); return; }
+
+  setAuthLoading('login', true);
+  try {
+    await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const email = idToEmail(id);
+    await fbAuth.signInWithEmailAndPassword(email, pw);
+    // onAuthStateChanged 에서 enterApp 호출
+  } catch (e) {
+    errEl.textContent = firebaseErrMsg(e.code);
+    setAuthLoading('login', false);
+  }
+}
+
+// ── 로그아웃 ──
+async function doLogout() {
+  if (!confirm('로그아웃 하시겠습니까?')) return;
+  if (currentCall) hangUp();
+  if (peer) { try { peer.destroy(); } catch(e) {} peer = null; }
+  await fbAuth.signOut();
+  loggedInUser = null; loggedInEmail = null;
+  document.getElementById('user-bar').style.display    = 'none';
+  document.getElementById('lobby').style.display       = 'none';
+  document.getElementById('call-screen').style.display = 'none';
+  document.getElementById('login-id').value = '';
+  document.getElementById('login-pw').value = '';
+  clearAuthMsgs();
+  document.getElementById('auth-screen').style.display = 'flex';
+  showLogin();
+}
+
+// ── Firebase 에러 메시지 한국어화 ──
+function firebaseErrMsg(code) {
+  const map = {
+    'auth/email-already-in-use':    '이미 사용 중인 아이디입니다.',
+    'auth/invalid-email':           '아이디 형식이 올바르지 않습니다.',
+    'auth/weak-password':           '비밀번호가 너무 약합니다 (6자 이상).',
+    'auth/user-not-found':          '존재하지 않는 아이디입니다.',
+    'auth/wrong-password':          '비밀번호가 올바르지 않습니다.',
+    'auth/invalid-credential':      '아이디 또는 비밀번호가 올바르지 않습니다.',
+    'auth/too-many-requests':       '시도 횟수가 너무 많습니다. 잠시 후 다시 시도하세요.',
+    'auth/network-request-failed':  '네트워크 오류가 발생했습니다.',
+    'auth/configuration-not-found': '⚠️ Firebase 설정이 필요합니다. firebaseConfig를 입력하세요.',
+  };
+  return map[code] || `오류: ${code}`;
+}
+
+// ── 아이디 중복 확인 (실시간) ──
+let checkIdTimer = null;
+async function checkRegId() {
+  const id    = document.getElementById('reg-id').value.trim();
+  const msgEl = document.getElementById('reg-id-msg');
+  const inpEl = document.getElementById('reg-id');
+  msgEl.textContent = ''; inpEl.classList.remove('error-field');
+  if (!id) return;
+  if (!isValidId(id)) {
+    msgEl.textContent = '영문·숫자·한글 2~20자로 입력하세요.';
+    msgEl.style.color = '#f55'; inpEl.classList.add('error-field'); return;
+  }
+  clearTimeout(checkIdTimer);
+  msgEl.textContent = '확인 중...'; msgEl.style.color = 'var(--text2)';
+  checkIdTimer = setTimeout(async () => {
+    try {
+      const methods = await fbAuth.fetchSignInMethodsForEmail(idToEmail(id));
+      if (methods.length > 0) {
+        msgEl.textContent = '이미 사용 중인 아이디입니다.';
+        msgEl.style.color = '#f55'; inpEl.classList.add('error-field');
+      } else {
+        msgEl.textContent = '✓ 사용 가능한 아이디입니다.';
+        msgEl.style.color = 'var(--green)'; inpEl.classList.remove('error-field');
+      }
+    } catch { msgEl.textContent = ''; }
+  }, 600);
+}
+
+// ── 비밀번호 강도 ──
+function checkPwStrength() {
+  const pw   = document.getElementById('reg-pw').value;
+  const fill = document.getElementById('strength-fill');
+  let score  = 0;
+  if (pw.length >= 6)          score++;
+  if (pw.length >= 10)         score++;
+  if (/[A-Z]/.test(pw))        score++;
+  if (/[0-9]/.test(pw))        score++;
+  if (/[^a-zA-Z0-9]/.test(pw)) score++;
+  const colors = ['#f55','#f55','#ffa502','#f7a94f','#2ed573','#2ed573'];
+  fill.style.width      = (score / 5 * 100) + '%';
+  fill.style.background = colors[score];
+}
+
+// ── 비밀번호 표시/숨김 ──
+function togglePw(inputId, btn) {
+  const inp    = document.getElementById(inputId);
+  const isText = inp.type === 'text';
+  inp.type                         = isText ? 'password' : 'text';
+  btn.querySelector('svg').style.opacity = isText ? '1' : '0.4';
+}
+
+// ── Auth 상태 감지 ──
+function enterApp(user) {
+  loggedInUser  = user.displayName || user.email.replace(FAKE_DOMAIN, '');
+  loggedInEmail = user.email;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('lobby').style.display       = 'none';
+  document.getElementById('user-bar').style.display    = 'flex';
+  document.getElementById('user-bar-name').textContent = loggedInUser;
+  document.getElementById('user-avatar').textContent   = loggedInUser.charAt(0).toUpperCase();
+  document.getElementById('my-name').value             = loggedInUser;
+  document.getElementById('lang-hello-name').textContent = loggedInUser;
+  myName = loggedInUser;
+  setAuthLoading('login', false);
+  // 언어 선택 화면 표시
+  langScreenFromLobby = false;
+  openLangScreen(false);
+}
+
+function initAuth() {
+  // 로딩 중엔 auth-screen 유지
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('lobby').style.display       = 'none';
+
+  fbAuth.onAuthStateChanged(user => {
+    if (user) {
+      enterApp(user);
+    } else {
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('lobby').style.display       = 'none';
+      document.getElementById('user-bar').style.display    = 'none';
+    }
+  });
+}
+
+// ── i18n 번역 테이블 ──
+let currentLang = 'ko';
+
+const LANGS = {
+  ko:{
+    startBtn:'시작하기', lobbyName:'내 이름', namePh:'이름 입력', camPreview:'카메라 미리보기',
+    camBtn:'카메라', micBtn:'마이크', readyBtn:'입장하기', idLabel:'이 ID를 상대방에게 공유하세요',
+    copyBtn:'복사', callLabel:'상대방 ID로 전화 걸기', callPh:'상대방 ID 입력 (예: 1234)', callBtn:'📞 전화 걸기',
+    camHint:'카메라 켜기 버튼을 누르세요', statusReady:'준비 완료 — ID를 상대방에게 공유하세요',
+    statusNoId:'상대방 ID를 찾을 수 없습니다', statusConnecting:'연결 중...',
+    inCall:'통화 중', connected:'연결됨', remote:'상대방', me:'나',
+    camOff:'카메라 꺼짐', noIdInput:'상대방 ID를 입력하세요', selfCall:'자기 자신에게는 전화할 수 없습니다',
+    chatBtn:'채팅', wbBtn:'화이트보드', quizBtn:'퀴즈 시작',
+    chatTab:'채팅', wbTab:'화이트보드', chatPh:'메시지 입력...',
+    chatStarted:'채팅이 시작되었습니다',
+    wbPen:'펜', wbEraser:'지우개', wbLine:'직선', wbRect:'사각형', wbCircle:'원', wbText:'텍스트',
+    wbUndo:'↩', wbClear:'지우기', wbUndoMsg:'더 이상 되돌릴 수 없습니다', wbClearConfirm:'화이트보드를 지울까요?',
+    wbSize:'굵기', wbTextPrompt:'텍스트 입력:',
+    quizTitle:'🎯 퀴즈 — 설명하세요!', quizScore:'점수: ', quizCorrectBtn:'✅ 정답!',
+    quizSkipBtn:'⏭ 넘기기', quizStopBtn:'⏹ 종료',
+    quizGuesserTxt:'상대방이 설명하는 단어를 맞춰보세요!',
+    quizHint:(r,l)=>`${r}번째 문제 · ${l}글자`,
+    quizRound:(r)=>`${r}번째 문제`,
+    quizStartToast:'🎯 퀴즈 시작! 상대방이 설명하는 단어를 맞춰보세요',
+    quizStartChat:'퀴즈가 시작됩니다! 상대방의 설명을 듣고 채팅으로 답하세요',
+    quizCorrectToast:(w,s)=>`✅ 정답! "${w}" (${s}점)`,
+    quizCorrectChat:(w,s)=>`정답! 단어는 "${w}"이었습니다 🎉 (${s}점)`,
+    quizSkipToast:(w)=>`⏭ 넘어감 — 단어: "${w}"`,
+    quizSkipChat:(w)=>`패스! 단어는 "${w}"이었습니다`,
+    quizTimeup:'⏰ 시간 초과!',
+    quizEndToast:(r,s)=>`퀴즈 종료 — ${r}문제 중 ${s}개 정답!`,
+    quizEndChat:(r,s)=>`퀴즈 종료! 총 ${r}문제 중 ${s}개 정답`,
+    micOn:'🎙 마이크 켜짐', micOff:'🔇 마이크 꺼짐',
+    camOn:'📷 카메라 켜짐', camOffToast:'📷 카메라 꺼짐',
+    shareOn:'🖥 화면 공유 중', shareOff:'화면 공유 종료', shareCancel:'화면 공유 취소됨',
+    camFront:'셀카 카메라로 전환', camBack:'후면 카메라로 전환', camFlipFail:'카메라 전환 실패',
+    callConnected:'✅ 상대방과 연결되었습니다', callEnded:'통화가 종료되었습니다',
+    callAccepted:'✅ 연결되었습니다', callRejected:'통화를 거절했습니다',
+    callError:(m)=>`연결 오류: ${m}`, chatConn:'💬 채팅 채널 연결됨',
+    idCopied:(id)=>`ID 복사됨: ${id}`, noPermission:'카메라 권한이 필요합니다',
+    incomingSub:'영상통화가 걸려왔습니다',
+  },
+  en:{
+    startBtn:'Start', lobbyName:'My Name', namePh:'Enter name', camPreview:'Camera Preview',
+    camBtn:'Camera', micBtn:'Mic', readyBtn:'Join', idLabel:'Share this ID with your partner',
+    copyBtn:'Copy', callLabel:'Call by ID', callPh:'Enter partner ID (e.g. 1234)', callBtn:'📞 Call',
+    camHint:'Click Camera to enable preview', statusReady:'Ready — share your ID',
+    statusNoId:'Partner not found', statusConnecting:'Connecting...',
+    inCall:'In Call', connected:'Connected', remote:'Remote', me:'Me',
+    camOff:'Camera off', noIdInput:'Please enter partner ID', selfCall:'Cannot call yourself',
+    chatBtn:'Chat', wbBtn:'Whiteboard', quizBtn:'Quiz',
+    chatTab:'Chat', wbTab:'Whiteboard', chatPh:'Type a message...',
+    chatStarted:'Chat started',
+    wbPen:'Pen', wbEraser:'Eraser', wbLine:'Line', wbRect:'Rect', wbCircle:'Circle', wbText:'Text',
+    wbUndo:'↩', wbClear:'Clear', wbUndoMsg:'Nothing to undo', wbClearConfirm:'Clear whiteboard?',
+    wbSize:'Size', wbTextPrompt:'Enter text:',
+    quizTitle:'🎯 Quiz — Describe it!', quizScore:'Score: ', quizCorrectBtn:'✅ Correct!',
+    quizSkipBtn:'⏭ Skip', quizStopBtn:'⏹ Stop',
+    quizGuesserTxt:'Guess the word your partner describes!',
+    quizHint:(r,l)=>`Round ${r} · ${l} letters`,
+    quizRound:(r)=>`Round ${r}`,
+    quizStartToast:'🎯 Quiz started! Guess the word!',
+    quizStartChat:'Quiz started! Type your answer in chat.',
+    quizCorrectToast:(w,s)=>`✅ Correct! "${w}" (${s} pts)`,
+    quizCorrectChat:(w,s)=>`Correct! The word was "${w}" 🎉 (${s} pts)`,
+    quizSkipToast:(w)=>`⏭ Skipped — word: "${w}"`,
+    quizSkipChat:(w)=>`Skipped! The word was "${w}"`,
+    quizTimeup:'⏰ Time\'s up!',
+    quizEndToast:(r,s)=>`Quiz over — ${s}/${r} correct!`,
+    quizEndChat:(r,s)=>`Quiz over! ${s} correct out of ${r}`,
+    micOn:'🎙 Mic on', micOff:'🔇 Mic off',
+    camOn:'📷 Camera on', camOffToast:'📷 Camera off',
+    shareOn:'🖥 Sharing screen', shareOff:'Screen share ended', shareCancel:'Screen share cancelled',
+    camFront:'Front camera', camBack:'Rear camera', camFlipFail:'Camera switch failed',
+    callConnected:'✅ Connected!', callEnded:'Call ended',
+    callAccepted:'✅ Connected!', callRejected:'Call rejected',
+    callError:(m)=>`Connection error: ${m}`, chatConn:'💬 Chat connected',
+    idCopied:(id)=>`ID copied: ${id}`, noPermission:'Camera permission required',
+    incomingSub:'Incoming video call',
+  },
+  ja:{
+    startBtn:'始める', lobbyName:'名前', namePh:'名前を入力', camPreview:'カメラプレビュー',
+    camBtn:'カメラ', micBtn:'マイク', readyBtn:'入室する', idLabel:'このIDを相手に共有してください',
+    copyBtn:'コピー', callLabel:'IDで電話をかける', callPh:'相手のIDを入力', callBtn:'📞 電話する',
+    camHint:'カメラボタンを押してください', statusReady:'準備完了 — IDを共有してください',
+    statusNoId:'相手が見つかりません', statusConnecting:'接続中...',
+    inCall:'通話中', connected:'接続済み', remote:'相手', me:'自分',
+    camOff:'カメラOFF', noIdInput:'相手のIDを入力してください', selfCall:'自分には電話できません',
+    chatBtn:'チャット', wbBtn:'ホワイトボード', quizBtn:'クイズ開始',
+    chatTab:'チャット', wbTab:'ホワイトボード', chatPh:'メッセージを入力...',
+    chatStarted:'チャットが始まりました',
+    wbPen:'ペン', wbEraser:'消しゴム', wbLine:'直線', wbRect:'四角形', wbCircle:'円', wbText:'テキスト',
+    wbUndo:'↩', wbClear:'消去', wbUndoMsg:'これ以上戻せません', wbClearConfirm:'ホワイトボードを消しますか？',
+    wbSize:'太さ', wbTextPrompt:'テキストを入力:',
+    quizTitle:'🎯 クイズ — 説明してください！', quizScore:'スコア: ', quizCorrectBtn:'✅ 正解！',
+    quizSkipBtn:'⏭ スキップ', quizStopBtn:'⏹ 終了',
+    quizGuesserTxt:'相手が説明する単語を当ててください！',
+    quizHint:(r,l)=>`第${r}問 · ${l}文字`,
+    quizRound:(r)=>`第${r}問`,
+    quizStartToast:'🎯 クイズ開始！単語を当ててください',
+    quizStartChat:'クイズが始まります！チャットで答えてください',
+    quizCorrectToast:(w,s)=>`✅ 正解！「${w}」(${s}点)`,
+    quizCorrectChat:(w,s)=>`正解！答えは「${w}」でした 🎉 (${s}点)`,
+    quizSkipToast:(w)=>`⏭ スキップ — 単語：「${w}」`,
+    quizSkipChat:(w)=>`スキップ！答えは「${w}」でした`,
+    quizTimeup:'⏰ 時間切れ！',
+    quizEndToast:(r,s)=>`クイズ終了 — ${r}問中${s}問正解！`,
+    quizEndChat:(r,s)=>`クイズ終了！${r}問中${s}問正解`,
+    micOn:'🎙 マイクON', micOff:'🔇 マイクOFF',
+    camOn:'📷 カメラON', camOffToast:'📷 カメラOFF',
+    shareOn:'🖥 画面共有中', shareOff:'画面共有終了', shareCancel:'画面共有キャンセル',
+    camFront:'インカメラ', camBack:'アウトカメラ', camFlipFail:'カメラ切替失敗',
+    callConnected:'✅ 接続されました', callEnded:'通話が終了しました',
+    callAccepted:'✅ 接続されました', callRejected:'通話を拒否しました',
+    callError:(m)=>`接続エラー: ${m}`, chatConn:'💬 チャット接続済み',
+    idCopied:(id)=>`IDコピー済み: ${id}`, noPermission:'カメラ権限が必要です',
+    incomingSub:'ビデオ通話がかかってきました',
+  },
+  zh:{
+    startBtn:'开始', lobbyName:'我的名字', namePh:'请输入名字', camPreview:'摄像头预览',
+    camBtn:'摄像头', micBtn:'麦克风', readyBtn:'进入', idLabel:'将此ID分享给对方',
+    copyBtn:'复制', callLabel:'通过ID拨打', callPh:'输入对方ID', callBtn:'📞 拨打',
+    camHint:'请点击摄像头按钮', statusReady:'就绪 — 请分享您的ID',
+    statusNoId:'找不到对方', statusConnecting:'连接中...',
+    inCall:'通话中', connected:'已连接', remote:'对方', me:'我',
+    camOff:'摄像头关闭', noIdInput:'请输入对方ID', selfCall:'不能呼叫自己',
+    chatBtn:'聊天', wbBtn:'白板', quizBtn:'开始问答',
+    chatTab:'聊天', wbTab:'白板', chatPh:'输入消息...',
+    chatStarted:'聊天已开始',
+    wbPen:'笔', wbEraser:'橡皮', wbLine:'直线', wbRect:'矩形', wbCircle:'圆形', wbText:'文字',
+    wbUndo:'↩', wbClear:'清除', wbUndoMsg:'无法继续撤销', wbClearConfirm:'清除白板？',
+    wbSize:'粗细', wbTextPrompt:'输入文字:',
+    quizTitle:'🎯 问答 — 请描述！', quizScore:'分数: ', quizCorrectBtn:'✅ 正确！',
+    quizSkipBtn:'⏭ 跳过', quizStopBtn:'⏹ 结束',
+    quizGuesserTxt:'猜猜对方描述的词！',
+    quizHint:(r,l)=>`第${r}题 · ${l}个字`,
+    quizRound:(r)=>`第${r}题`,
+    quizStartToast:'🎯 问答开始！请猜词',
+    quizStartChat:'问答开始！请在聊天中输入答案',
+    quizCorrectToast:(w,s)=>`✅ 正确！"${w}" (${s}分)`,
+    quizCorrectChat:(w,s)=>`正确！答案是"${w}" 🎉 (${s}分)`,
+    quizSkipToast:(w)=>`⏭ 跳过 — 词语："${w}"`,
+    quizSkipChat:(w)=>`跳过！答案是"${w}"`,
+    quizTimeup:'⏰ 时间到！',
+    quizEndToast:(r,s)=>`问答结束 — ${r}题中答对${s}题！`,
+    quizEndChat:(r,s)=>`问答结束！${r}题中答对${s}题`,
+    micOn:'🎙 麦克风开启', micOff:'🔇 麦克风关闭',
+    camOn:'📷 摄像头开启', camOffToast:'📷 摄像头关闭',
+    shareOn:'🖥 正在共享屏幕', shareOff:'屏幕共享结束', shareCancel:'屏幕共享已取消',
+    camFront:'前置摄像头', camBack:'后置摄像头', camFlipFail:'切换摄像头失败',
+    callConnected:'✅ 已连接！', callEnded:'通话已结束',
+    callAccepted:'✅ 已连接！', callRejected:'已拒绝通话',
+    callError:(m)=>`连接错误: ${m}`, chatConn:'💬 聊天已连接',
+    idCopied:(id)=>`ID已复制: ${id}`, noPermission:'需要摄像头权限',
+    incomingSub:'收到视频通话',
+  },
+  es:{
+    startBtn:'Comenzar', lobbyName:'Mi nombre', namePh:'Ingresa tu nombre', camPreview:'Vista previa de cámara',
+    camBtn:'Cámara', micBtn:'Micrófono', readyBtn:'Entrar', idLabel:'Comparte este ID con tu compañero',
+    copyBtn:'Copiar', callLabel:'Llamar por ID', callPh:'Ingresa el ID del compañero', callBtn:'📞 Llamar',
+    camHint:'Pulsa el botón de cámara', statusReady:'Listo — comparte tu ID',
+    statusNoId:'Compañero no encontrado', statusConnecting:'Conectando...',
+    inCall:'En llamada', connected:'Conectado', remote:'Remoto', me:'Yo',
+    camOff:'Cámara apagada', noIdInput:'Ingresa el ID del compañero', selfCall:'No puedes llamarte a ti mismo',
+    chatBtn:'Chat', wbBtn:'Pizarra', quizBtn:'Iniciar quiz',
+    chatTab:'Chat', wbTab:'Pizarra', chatPh:'Escribe un mensaje...',
+    chatStarted:'Chat iniciado',
+    wbPen:'Lápiz', wbEraser:'Borrador', wbLine:'Línea', wbRect:'Rectángulo', wbCircle:'Círculo', wbText:'Texto',
+    wbUndo:'↩', wbClear:'Limpiar', wbUndoMsg:'Nada que deshacer', wbClearConfirm:'¿Limpiar pizarra?',
+    wbSize:'Tamaño', wbTextPrompt:'Ingresa texto:',
+    quizTitle:'🎯 Quiz — ¡Descríbelo!', quizScore:'Puntos: ', quizCorrectBtn:'✅ ¡Correcto!',
+    quizSkipBtn:'⏭ Saltar', quizStopBtn:'⏹ Parar',
+    quizGuesserTxt:'¡Adivina la palabra que describe tu compañero!',
+    quizHint:(r,l)=>`Ronda ${r} · ${l} letras`,
+    quizRound:(r)=>`Ronda ${r}`,
+    quizStartToast:'🎯 ¡Quiz iniciado! ¡Adivina!',
+    quizStartChat:'¡Quiz iniciado! Escribe tu respuesta en el chat.',
+    quizCorrectToast:(w,s)=>`✅ ¡Correcto! "${w}" (${s} pts)`,
+    quizCorrectChat:(w,s)=>`¡Correcto! La palabra era "${w}" 🎉 (${s} pts)`,
+    quizSkipToast:(w)=>`⏭ Saltado — palabra: "${w}"`,
+    quizSkipChat:(w)=>`¡Saltado! La palabra era "${w}"`,
+    quizTimeup:'⏰ ¡Tiempo!',
+    quizEndToast:(r,s)=>`Quiz terminado — ${s}/${r} correctas!`,
+    quizEndChat:(r,s)=>`Quiz terminado. ${s} correctas de ${r}`,
+    micOn:'🎙 Micrófono encendido', micOff:'🔇 Micrófono apagado',
+    camOn:'📷 Cámara encendida', camOffToast:'📷 Cámara apagada',
+    shareOn:'🖥 Compartiendo pantalla', shareOff:'Pantalla compartida finalizada', shareCancel:'Compartir cancelado',
+    camFront:'Cámara frontal', camBack:'Cámara trasera', camFlipFail:'Error al cambiar cámara',
+    callConnected:'✅ ¡Conectado!', callEnded:'Llamada finalizada',
+    callAccepted:'✅ ¡Conectado!', callRejected:'Llamada rechazada',
+    callError:(m)=>`Error de conexión: ${m}`, chatConn:'💬 Chat conectado',
+    idCopied:(id)=>`ID copiado: ${id}`, noPermission:'Se necesita permiso de cámara',
+    incomingSub:'Videollamada entrante',
+  },
+  fr:{
+    startBtn:'Commencer', lobbyName:'Mon nom', namePh:'Entrez votre nom', camPreview:'Aperçu caméra',
+    camBtn:'Caméra', micBtn:'Micro', readyBtn:'Rejoindre', idLabel:'Partagez cet ID avec votre contact',
+    copyBtn:'Copier', callLabel:'Appeler par ID', callPh:"Entrez l'ID du contact", callBtn:'📞 Appeler',
+    camHint:'Appuyez sur le bouton caméra', statusReady:'Prêt — partagez votre ID',
+    statusNoId:'Contact introuvable', statusConnecting:'Connexion...',
+    inCall:'En appel', connected:'Connecté', remote:'Contact', me:'Moi',
+    camOff:'Caméra désactivée', noIdInput:"Entrez l'ID du contact", selfCall:"Impossible de s'appeler soi-même",
+    chatBtn:'Chat', wbBtn:'Tableau blanc', quizBtn:'Démarrer quiz',
+    chatTab:'Chat', wbTab:'Tableau blanc', chatPh:'Tapez un message...',
+    chatStarted:'Chat démarré',
+    wbPen:'Crayon', wbEraser:'Gomme', wbLine:'Ligne', wbRect:'Rectangle', wbCircle:'Cercle', wbText:'Texte',
+    wbUndo:'↩', wbClear:'Effacer', wbUndoMsg:"Impossible d'annuler", wbClearConfirm:'Effacer le tableau?',
+    wbSize:'Taille', wbTextPrompt:'Entrez le texte:',
+    quizTitle:'🎯 Quiz — Décrivez!', quizScore:'Score: ', quizCorrectBtn:'✅ Correct!',
+    quizSkipBtn:'⏭ Passer', quizStopBtn:'⏹ Arrêter',
+    quizGuesserTxt:'Devinez le mot que décrit votre contact!',
+    quizHint:(r,l)=>`Question ${r} · ${l} lettres`,
+    quizRound:(r)=>`Question ${r}`,
+    quizStartToast:'🎯 Quiz démarré! Devinez le mot!',
+    quizStartChat:'Quiz démarré! Tapez votre réponse dans le chat.',
+    quizCorrectToast:(w,s)=>`✅ Correct! "${w}" (${s} pts)`,
+    quizCorrectChat:(w,s)=>`Correct! Le mot était "${w}" 🎉 (${s} pts)`,
+    quizSkipToast:(w)=>`⏭ Passé — mot: "${w}"`,
+    quizSkipChat:(w)=>`Passé! Le mot était "${w}"`,
+    quizTimeup:'⏰ Temps écoulé!',
+    quizEndToast:(r,s)=>`Quiz terminé — ${s}/${r} correct!`,
+    quizEndChat:(r,s)=>`Quiz terminé. ${s} correct sur ${r}`,
+    micOn:'🎙 Micro activé', micOff:'🔇 Micro désactivé',
+    camOn:'📷 Caméra activée', camOffToast:'📷 Caméra désactivée',
+    shareOn:"🖥 Partage d'écran", shareOff:'Partage terminé', shareCancel:'Partage annulé',
+    camFront:'Caméra frontale', camBack:'Caméra arrière', camFlipFail:'Échec changement caméra',
+    callConnected:'✅ Connecté!', callEnded:'Appel terminé',
+    callAccepted:'✅ Connecté!', callRejected:'Appel refusé',
+    callError:(m)=>`Erreur: ${m}`, chatConn:'💬 Chat connecté',
+    idCopied:(id)=>`ID copié: ${id}`, noPermission:'Permission caméra requise',
+    incomingSub:'Appel vidéo entrant',
+  }
+};
+
+// 언어별 퀴즈 단어
+const QUIZ_WORDS_BY_LANG = {
+  ko:['강아지','고양이','코끼리','기린','펭귄','악어','독수리','상어','문어','캥거루','피자','떡볶이','삼겹살','초밥','라면','치킨','아이스크림','파스타','햄버거','딸기','의사','소방관','요리사','경찰','선생님','우주비행사','화가','프로게이머','마법사','탐정','텔레비전','냉장고','자전거','비행기','잠수함','로켓','우산','망원경','피아노','기타','놀이공원','도서관','수영장','박물관','산','바다','사막','동굴','우주정거장','피라미드','축구','농구','야구','테니스','수영','스키','태권도','볼링','골프','양궁','해리포터','슈퍼맨','피카츄','도라에몽','스파이더맨','아이언맨','겨울왕국','신데렐라','마리오','루피','춤추기','달리기','요리하기','노래하기','잠자기','청소하기','그림그리기','낚시','등산','수영'],
+  en:['dog','cat','elephant','giraffe','penguin','crocodile','eagle','shark','octopus','kangaroo','pizza','hamburger','sushi','noodles','chicken','ice cream','pasta','strawberry','sandwich','taco','doctor','firefighter','chef','police','teacher','astronaut','painter','magician','detective','farmer','television','refrigerator','bicycle','airplane','submarine','rocket','umbrella','telescope','piano','guitar','amusement park','library','swimming pool','museum','mountain','ocean','desert','cave','space station','pyramid','soccer','basketball','baseball','tennis','swimming','skiing','bowling','golf','archery','rugby','Harry Potter','Superman','Pikachu','Spider-Man','Iron Man','Cinderella','Mario','Batman','Elsa','Sherlock','dancing','running','cooking','singing','sleeping','cleaning','drawing','fishing','hiking','surfing'],
+  ja:['犬','猫','象','キリン','ペンギン','ワニ','鷲','サメ','タコ','カンガルー','ピザ','ハンバーガー','寿司','ラーメン','チキン','アイスクリーム','パスタ','イチゴ','サンドイッチ','たこ焼き','医者','消防士','料理人','警察','先生','宇宙飛行士','画家','魔法使い','探偵','農家','テレビ','冷蔵庫','自転車','飛行機','潜水艦','ロケット','傘','望遠鏡','ピアノ','ギター','遊園地','図書館','プール','博物館','山','海','砂漠','洞窟','宇宙ステーション','ピラミッド','サッカー','バスケ','野球','テニス','水泳','スキー','ボウリング','ゴルフ','アーチェリー','ラグビー','ハリーポッター','スーパーマン','ピカチュウ','ドラえもん','スパイダーマン','アイアンマン','シンデレラ','マリオ','バットマン','エルサ','ダンス','走る','料理する','歌う','寝る','掃除する','絵を描く','釣り','登山','サーフィン'],
+  zh:['狗','猫','大象','长颈鹿','企鹅','鳄鱼','老鹰','鲨鱼','章鱼','袋鼠','披萨','汉堡','寿司','拉面','炸鸡','冰淇淋','意大利面','草莓','三明治','饺子','医生','消防员','厨师','警察','老师','宇航员','画家','魔法师','侦探','农民','电视','冰箱','自行车','飞机','潜水艇','火箭','雨伞','望远镜','钢琴','吉他','游乐园','图书馆','游泳池','博物馆','山','大海','沙漠','洞穴','空间站','金字塔','足球','篮球','棒球','网球','游泳','滑雪','保龄球','高尔夫','射箭','橄榄球','哈利波特','超人','皮卡丘','哆啦A梦','蜘蛛侠','钢铁侠','灰姑娘','马里奥','蝙蝠侠','艾莎','跳舞','跑步','做饭','唱歌','睡觉','打扫','画画','钓鱼','爬山','冲浪'],
+  es:['perro','gato','elefante','jirafa','pingüino','cocodrilo','águila','tiburón','pulpo','canguro','pizza','hamburguesa','sushi','fideos','pollo','helado','pasta','fresa','sándwich','taco','médico','bombero','cocinero','policía','profesor','astronauta','pintor','mago','detective','granjero','televisión','nevera','bicicleta','avión','submarino','cohete','paraguas','telescopio','piano','guitarra','parque de atracciones','biblioteca','piscina','museo','montaña','océano','desierto','cueva','estación espacial','pirámide','fútbol','baloncesto','béisbol','tenis','natación','esquí','bolos','golf','tiro con arco','rugby','Harry Potter','Superman','Pikachu','Spider-Man','Iron Man','Cenicienta','Mario','Batman','Elsa','Sherlock','bailar','correr','cocinar','cantar','dormir','limpiar','dibujar','pescar','senderismo','surfear'],
+  fr:['chien','chat','éléphant','girafe','pingouin','crocodile','aigle','requin','pieuvre','kangourou','pizza','hamburger','sushi','nouilles','poulet','glace','pâtes','fraise','sandwich','crêpe','médecin','pompier','cuisinier','policier','professeur','astronaute','peintre','magicien','détective','fermier','télévision','réfrigérateur','vélo','avion','sous-marin','fusée','parapluie','télescope','piano','guitare',"parc d'attractions",'bibliothèque','piscine','musée','montagne','océan','désert','grotte','station spatiale','pyramide','football','basketball','baseball','tennis','natation','ski','bowling','golf','tir à l\'arc','rugby','Harry Potter','Superman','Pikachu','Spider-Man','Iron Man','Cendrillon','Mario','Batman','Elsa','Sherlock','danser','courir','cuisiner','chanter','dormir','nettoyer','dessiner','pêcher','randonnée','surfer'],
+};
+
+const LANG_META = {
+  ko:{flag:'🇰🇷', label:'한국어'},
+  en:{flag:'🇺🇸', label:'English'},
+  ja:{flag:'🇯🇵', label:'日本語'},
+  zh:{flag:'🇨🇳', label:'中文'},
+  es:{flag:'🇪🇸', label:'Español'},
+  fr:{flag:'🇫🇷', label:'Français'},
+};
+
+// 번역 함수
+function T(key, ...args) {
+  const val = LANGS[currentLang]?.[key] ?? LANGS.ko[key];
+  return typeof val === 'function' ? val(...args) : (val ?? key);
+}
+
+// 퀴즈 단어 목록
+function getQuizWords() { return QUIZ_WORDS_BY_LANG[currentLang] || QUIZ_WORDS_BY_LANG.ko; }
+
+// 언어 선택 화면 열기
+let langScreenFromLobby = false;
+function openLangScreen(fromLobby=false) {
+  langScreenFromLobby = fromLobby;
+  document.getElementById('lang-screen').style.display = 'flex';
+  // 현재 선택 반영
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('lb-'+currentLang)?.classList.add('selected');
+  const confirmTexts = {ko:'시작하기',en:'Start',ja:'始める',zh:'开始',es:'Comenzar',fr:'Commencer'};
+  const btn = document.getElementById('lang-confirm');
+  btn.classList.add('ready');
+  btn.textContent = confirmTexts[currentLang];
+}
+
+function selectLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('lb-'+lang).classList.add('selected');
+  const confirmTexts = {ko:'시작하기',en:'Start',ja:'始める',zh:'开始',es:'Comenzar',fr:'Commencer'};
+  const btn = document.getElementById('lang-confirm');
+  btn.classList.add('ready');
+  btn.textContent = confirmTexts[lang];
+}
+
+function confirmLang() {
+  document.getElementById('lang-screen').style.display = 'none';
+  const meta = LANG_META[currentLang];
+  document.getElementById('user-bar-flag').textContent = meta.flag;
+  document.getElementById('user-bar-lang').textContent = meta.label;
+  applyLang();
+  if (!langScreenFromLobby) {
+    document.getElementById('lobby').style.display = 'flex';
+    if (!peer) initPeer();
+  }
+}
+
+// UI 전체 언어 적용
+function applyLang() {
+  const L = currentLang;
+  // 로비
+  setEl('lobby-name-label',   T('lobbyName'));
+  setAttr('my-name',          'placeholder', T('namePh'));
+  setEl('cam-preview-label',  T('camPreview'));
+  setEl('cam-btn-txt',        T('camBtn'));
+  setEl('mic-btn-txt',        T('micBtn'));
+  setEl('cam-hint-txt',       T('camHint'));
+  setEl('ready-btn',          T('readyBtn'));
+  setEl('my-id-label',        T('idLabel'));
+  setEl('copy-btn',           T('copyBtn'));
+  setEl('call-label',         T('callLabel'));
+  setAttr('peer-id-input',    'placeholder', T('callPh'));
+  setEl('call-btn',           '📞 '+T('callBtn').replace('📞 ','').replace('📞',''));
+  // 통화 화면
+  setEl('peer-vid-label',     T('remote'));
+  setEl('local-vid-label',    T('me'));
+  setEl('connected-badge-txt',T('connected'));
+  setEl('inCall-label',       T('inCall'));
+  setEl('pip-cam-off-txt',    T('camOff'));
+  setEl('incoming-sub',       T('incomingSub'));
+  // 사이드 버튼
+  setEl('chat-btn-txt',       T('chatBtn'));
+  setEl('wb-btn-txt',         T('wbBtn'));
+  setEl('quiz-btn-txt',       T('quizBtn'));
+  // 패널 탭
+  setEl('tab-chat-txt',       T('chatTab'));
+  setEl('tab-wb-txt',         T('wbTab'));
+  setAttr('chat-input',       'placeholder', T('chatPh'));
+  // 화이트보드
+  setEl('wbt-pen-txt',        T('wbPen'));
+  setEl('wbt-eraser-txt',     T('wbEraser'));
+  setEl('wbt-line',           T('wbLine'));
+  setEl('wbt-rect',           T('wbRect'));
+  setEl('wbt-circle',         T('wbCircle'));
+  setEl('wbt-text',           T('wbText'));
+  setEl('wb-size-label',      T('wbSize'));
+  // 퀴즈
+  setEl('quiz-title-txt',     T('quizTitle'));
+  setEl('quiz-score-label',   T('quizScore'));
+  setEl('quiz-correct-btn',   T('quizCorrectBtn'));
+  setEl('quiz-skip-btn',      T('quizSkipBtn'));
+  setEl('quiz-stop-btn',      T('quizStopBtn'));
+  setEl('quiz-guesser-txt',   T('quizGuesserTxt'));
+  // 채팅 초기 메시지 업데이트
+  const cm = document.getElementById('chat-messages');
+  if (cm) cm.innerHTML = `<div class="msg-system">${T('chatStarted')}</div>`;
+}
+function setEl(id, txt) { const e=document.getElementById(id); if(e) e.textContent=txt; }
+function setAttr(id, attr, val) { const e=document.getElementById(id); if(e) e.setAttribute(attr,val); }
+
 // ── State ──
 let peer=null,localStream=null,currentCall=null,pendingCall=null,dataConn=null;
 let remotePeerId='',micEnabled=true,camEnabled=true,sharing=false,screenStream=null;
@@ -514,12 +1331,12 @@ function initPeer(){
     config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
   peer.on('open',pid=>{
     document.getElementById('my-id-display').textContent=pid;
-    setLobbyStatus('준비 완료 — ID를 상대방에게 공유하세요','ok');
+    setLobbyStatus(T('statusReady'),'ok');
     document.getElementById('ready-btn').disabled=false;
     document.getElementById('call-btn').disabled=false;
   });
   peer.on('error',err=>{
-    if(err.type==='peer-unavailable'){setLobbyStatus('상대방 ID를 찾을 수 없습니다','error');showToast('❌ 상대방이 접속해 있지 않습니다');}
+    if(err.type==='peer-unavailable'){setLobbyStatus(T('statusNoId'),'error');showToast('❌ '+T('statusNoId'));}
     else setLobbyStatus('오류: '+err.message,'error');
   });
   peer.on('call',incoming=>{
@@ -537,7 +1354,7 @@ function initPeer(){
 // ── Data channel (chat + whiteboard) ──
 function setupDataConn(conn){
   dataConn=conn;
-  conn.on('open',()=>showToast('💬 채팅 채널 연결됨'));
+  conn.on('open',()=>showToast(T('chatConn')));
   conn.on('data',data=>{
     if(data.type==='chat') receiveChatMsg(data);
     else if(data.type==='wb-draw') wbReceiveDraw(data);
@@ -557,26 +1374,127 @@ async function togglePreCam(){
   const btn=document.getElementById('cam-toggle');
   if(!preCamOn){
     try{
-      preStream=await navigator.mediaDevices.getUserMedia({video:{facingMode},audio:preMicOn});
+      // 카메라 열기 시도 — 이미 다른 탭이 점유 중이면 자동으로 대체 스트림 사용
+      preStream=await openCameraStream();
       document.getElementById('preview-vid').srcObject=preStream;
       document.getElementById('preview-ph').style.display='none';
       preCamOn=true; btn.classList.add('on');
-    }catch(e){showToast('카메라 권한이 필요합니다 — localhost에서 실행하세요');}
+    }catch(e){showToast(T('noPermission'));}
   }else{
-    if(preStream) preStream.getVideoTracks().forEach(t=>t.stop());
+    stopPreStream();
     document.getElementById('preview-vid').srcObject=null;
     document.getElementById('preview-ph').style.display='flex';
     preCamOn=false; btn.classList.remove('on');
   }
 }
+
 async function togglePreMic(){
   preMicOn=!preMicOn;
   document.getElementById('mic-toggle').classList.toggle('on',preMicOn);
 }
+
+// ── 카메라 스트림 공유 지원 ──
+// 같은 PC 1개 카메라를 탭 2개에서 모두 사용 가능하게 처리
+let canvasFallbackStream=null;
+let canvasFallbackInterval=null;
+
+async function openCameraStream(){
+  // 1차: 실제 카메라 시도
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode,width:{ideal:1280},height:{ideal:720}},
+      audio:true
+    });
+    return s;
+  }catch(err){
+    // NotReadableError = 다른 탭이 이미 카메라 점유 중
+    if(err.name==='NotReadableError'||err.name==='TrackStartError'||err.message?.includes('Could not start')){
+      return createCanvasFallbackStream();
+    }
+    throw err;
+  }
+}
+
+function createCanvasFallbackStream(){
+  // 카메라 대신 Canvas로 "탭2 (카메라 없음)" 표시 화면 생성
+  const canvas=document.createElement('canvas');
+  canvas.width=640; canvas.height=360;
+  const ctx=canvas.getContext('2d');
+
+  function drawFrame(){
+    // 그라데이션 배경
+    const grad=ctx.createLinearGradient(0,0,640,360);
+    grad.addColorStop(0,'#1a1a2e');
+    grad.addColorStop(1,'#16213e');
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,640,360);
+    // 아바타 원
+    const initials=(loggedInUser||'?').charAt(0).toUpperCase();
+    ctx.beginPath();
+    ctx.arc(320,155,60,0,Math.PI*2);
+    ctx.fillStyle='rgba(79,142,247,0.25)';
+    ctx.fill();
+    ctx.strokeStyle='rgba(79,142,247,0.5)';
+    ctx.lineWidth=2;
+    ctx.stroke();
+    // 이니셜 텍스트
+    ctx.fillStyle='#4f8ef7';
+    ctx.font='bold 52px -apple-system, sans-serif';
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.fillText(initials,320,155);
+    // 이름
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    ctx.font='600 18px -apple-system, sans-serif';
+    ctx.fillText(loggedInUser||'Unknown',320,240);
+    // 안내 문구
+    ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.font='13px -apple-system, sans-serif';
+    ctx.fillText('카메라 공유 모드',320,270);
+    // 시간
+    ctx.fillStyle='rgba(255,255,255,0.2)';
+    ctx.font='12px monospace';
+    ctx.fillText(new Date().toLocaleTimeString(),320,300);
+  }
+
+  drawFrame();
+  canvasFallbackInterval=setInterval(drawFrame,1000);
+  canvasFallbackStream=canvas.captureStream(15); // 15fps
+
+  // 마이크 오디오 붙이기
+  return navigator.mediaDevices.getUserMedia({audio:true,video:false})
+    .then(audioStream=>{
+      audioStream.getAudioTracks().forEach(t=>canvasFallbackStream.addTrack(t));
+      return canvasFallbackStream;
+    })
+    .catch(()=>canvasFallbackStream); // 마이크도 없으면 그냥 canvas만
+}
+
+function stopPreStream(){
+  if(preStream){
+    preStream.getVideoTracks().forEach(t=>t.stop());
+    preStream=null;
+  }
+  if(canvasFallbackInterval){
+    clearInterval(canvasFallbackInterval);
+    canvasFallbackInterval=null;
+  }
+}
+
 async function getLocalStream(){
   if(localStream) return localStream;
-  try{ localStream=await navigator.mediaDevices.getUserMedia({video:preCamOn?{facingMode}:false,audio:true}); }
-  catch(e){ try{ localStream=await navigator.mediaDevices.getUserMedia({video:false,audio:true}); }catch(e2){ localStream=new MediaStream(); } }
+  if(preCamOn && preStream){
+    // 미리보기 스트림을 그대로 통화에 재사용 (카메라 재오픈 방지)
+    localStream=preStream;
+    preStream=null; // 소유권 이전
+    return localStream;
+  }
+  try{
+    localStream=await openCameraStream();
+  }catch(e){
+    try{ localStream=await navigator.mediaDevices.getUserMedia({video:false,audio:true}); }
+    catch(e2){ localStream=new MediaStream(); }
+  }
   return localStream;
 }
 function goReady(){
@@ -586,30 +1504,30 @@ function goReady(){
 }
 async function callPeer(){
   const peerId=document.getElementById('peer-id-input').value.trim();
-  if(!peerId){showToast('상대방 ID를 입력하세요');return;}
-  if(peerId===peer.id){showToast('자기 자신에게는 전화할 수 없습니다');return;}
-  setLobbyStatus('연결 중...','');
+  if(!peerId){showToast(T('noIdInput'));return;}
+  if(peerId===peer.id){showToast(T('selfCall'));return;}
+  setLobbyStatus(T('statusConnecting'),'');
   const stream=await getLocalStream();
   myName=document.getElementById('my-name').value||'익명';
   // Open data channel first
   const conn=peer.connect(peerId,{metadata:{name:myName}});
   setupDataConn(conn);
   const call=peer.call(peerId,stream,{metadata:{name:myName}});
-  if(!call){setLobbyStatus('연결 실패','error');return;}
+  if(!call){setLobbyStatus(T('statusNoId'),'error');return;}
   currentCall=call; remotePeerId=peerId;
   document.getElementById('peer-name-disp').textContent=peerId;
   document.getElementById('call-avatar').textContent=peerId.charAt(0);
   document.getElementById('peer-vid-label').textContent=peerId;
-  document.getElementById('call-status-txt').textContent='연결 중...';
+  document.getElementById('call-status-txt').textContent=T('statusConnecting');
   enterCallScreen(stream);
   call.on('stream',remoteStream=>{
     const rv=document.getElementById('remote-vid');
     rv.srcObject=remoteStream;
     document.getElementById('remote-ph-call').style.display='none';
-    showToast('✅ 상대방과 연결되었습니다'); startTimer();
+    showToast(T('callConnected')); startTimer();
   });
-  call.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
-  call.on('error',e=>{showToast('연결 오류: '+e.message);endCallCleanup();});
+  call.on('close',()=>{showToast(T('callEnded'));endCallCleanup();});
+  call.on('error',e=>{showToast(T('callError',e.message));endCallCleanup();});
 }
 async function acceptCall(){
   document.getElementById('incoming-overlay').style.display='none';
@@ -620,25 +1538,31 @@ async function acceptCall(){
   document.getElementById('peer-name-disp').textContent=callerName;
   document.getElementById('call-avatar').textContent=callerName.charAt(0).toUpperCase();
   document.getElementById('peer-vid-label').textContent=callerName;
-  document.getElementById('call-status-txt').textContent=callerName+'과 연결 중...';
+  document.getElementById('call-status-txt').textContent=callerName+' '+T('statusConnecting');
   pendingCall.answer(stream);
   enterCallScreen(stream);
   pendingCall.on('stream',remoteStream=>{
     const rv=document.getElementById('remote-vid');
     rv.srcObject=remoteStream;
     document.getElementById('remote-ph-call').style.display='none';
-    showToast('✅ 연결되었습니다'); startTimer();
+    showToast(T('callAccepted')); startTimer();
   });
-  pendingCall.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
+  pendingCall.on('close',()=>{showToast(T('callEnded'));endCallCleanup();});
   pendingCall=null;
 }
 function rejectCall(){
   document.getElementById('incoming-overlay').style.display='none';
   if(pendingCall){pendingCall.close();pendingCall=null;}
-  showToast('통화를 거절했습니다');
+  showToast(T('callRejected'));
 }
 function enterCallScreen(stream){
-  if(preStream){preStream.getTracks().forEach(t=>t.stop());preStream=null;}
+  // preStream이 이미 localStream으로 재사용됐으면 정지하지 않음
+  if(preStream && preStream!==stream && preStream!==localStream){
+    stopPreStream();
+  } else {
+    preStream=null;
+    if(canvasFallbackInterval){clearInterval(canvasFallbackInterval);canvasFallbackInterval=null;}
+  }
   document.getElementById('local-vid').srcObject=stream;
   document.getElementById('lobby').style.display='none';
   document.getElementById('call-screen').style.display='block';
@@ -651,13 +1575,13 @@ function enterCallScreen(stream){
 function ctrlMic(){
   micEnabled=!micEnabled;
   if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=micEnabled);
-  updateCtrlMic(); showToast(micEnabled?'🎙 마이크 켜짐':'🔇 마이크 꺼짐');
+  updateCtrlMic(); showToast(micEnabled?T('micOn'):T('micOff'));
 }
 function ctrlCam(){
   camEnabled=!camEnabled;
   if(localStream) localStream.getVideoTracks().forEach(t=>t.enabled=camEnabled);
   document.getElementById('pip-cam-off').style.display=camEnabled?'none':'flex';
-  updateCtrlCam(); showToast(camEnabled?'📷 카메라 켜짐':'📷 카메라 꺼짐');
+  updateCtrlCam(); showToast(camEnabled?T('camOn'):T('camOffToast'));
 }
 function updateCtrlMic(){document.getElementById('ctrl-mic').className='ctrl-btn'+(micEnabled?'':' off');}
 function updateCtrlCam(){document.getElementById('ctrl-cam').className='ctrl-btn'+(camEnabled?'':' off');}
@@ -671,9 +1595,9 @@ async function ctrlShare(){
       if(sender) sender.replaceTrack(track);
       document.getElementById('local-vid').srcObject=screenStream;
       sharing=true; btn.classList.add('active');
-      showToast('🖥 화면 공유 중');
+      showToast(T('shareOn'));
       track.onended=()=>stopShare();
-    }catch(e){showToast('화면 공유 취소됨');}
+    }catch(e){showToast(T('shareCancel'));}
   }else stopShare();
 }
 function stopShare(){
@@ -683,7 +1607,7 @@ function stopShare(){
   if(sender&&camTrack) sender.replaceTrack(camTrack);
   if(localStream) document.getElementById('local-vid').srcObject=localStream;
   sharing=false; document.getElementById('ctrl-share').classList.remove('active');
-  showToast('화면 공유 종료');
+  showToast(T('shareOff'));
 }
 async function flipCamera(){
   facingMode=facingMode==='user'?'environment':'user';
@@ -694,12 +1618,14 @@ async function flipCamera(){
     if(sender) sender.replaceTrack(nt);
     if(localStream){localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});localStream.addTrack(nt);}
     document.getElementById('local-vid').srcObject=localStream;
-    showToast(facingMode==='user'?'셀카 카메라로 전환':'후면 카메라로 전환');
-  }catch(e){showToast('카메라 전환 실패');}
+    showToast(facingMode==='user'?T('camFront'):T('camBack'));
+  }catch(e){showToast(T('camFlipFail'));}
 }
 function hangUp(){if(currentCall)currentCall.close();endCallCleanup();}
 function endCallCleanup(){
   clearInterval(timerInterval);timerInterval=null;elapsed=0;
+  if(canvasFallbackInterval){clearInterval(canvasFallbackInterval);canvasFallbackInterval=null;}
+  if(canvasFallbackStream){canvasFallbackStream.getTracks().forEach(t=>t.stop());canvasFallbackStream=null;}
   if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
   if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
   if(dataConn){dataConn.close();dataConn=null;}
@@ -714,7 +1640,7 @@ function endCallCleanup(){
   document.getElementById('call-screen').style.display='none';
   document.getElementById('lobby').style.display='flex';
   document.getElementById('timer-badge').textContent='00:00';
-  document.getElementById('chat-messages').innerHTML='<div class="msg-system">채팅이 시작되었습니다</div>';
+  document.getElementById('chat-messages').innerHTML=`<div class="msg-system">${T('chatStarted')}</div>`;
   closePanel(); unreadCount=0; updateUnreadBadge();
 }
 
@@ -834,7 +1760,7 @@ function wbSaveHistory(){
 function wbStart(e){
   if(wbTool==='text'){
     const pos=getWbPos(e);
-    const txt=prompt('텍스트 입력:');
+    const txt=prompt(T('wbTextPrompt'));
     if(txt){
       wbSaveHistory();
       wbCtx.font=`${Math.max(14,wbSize*4)}px -apple-system, sans-serif`;
@@ -927,7 +1853,7 @@ function wbReceiveDraw(data){
 }
 
 function wbUndo(){
-  if(wbHistory.length===0){showToast('더 이상 되돌릴 수 없습니다');return;}
+  if(wbHistory.length===0){showToast(T('wbUndoMsg'));return;}
   const snap=wbHistory.pop();
   wbCtx.putImageData(snap,0,0);
   sendData({type:'wb-undo'});
@@ -937,7 +1863,7 @@ function wbUndoLocal(){
   wbCtx.putImageData(wbHistory.pop(),0,0);
 }
 function wbClear(){
-  if(!confirm('화이트보드를 지울까요?')) return;
+  if(!confirm(T('wbClearConfirm'))) return;
   wbSaveHistory();
   wbCtx.fillStyle='#1a1a2a'; wbCtx.fillRect(0,0,wbCanvas.width,wbCanvas.height);
   sendData({type:'wb-clear'});
@@ -961,7 +1887,7 @@ function setWbColor(c,el){
 
 // ── Helpers ──
 function setLobbyStatus(msg,cls){const el=document.getElementById('lobby-status');el.textContent=msg;el.className='status-msg '+(cls||'');}
-function copyId(){const id=document.getElementById('my-id-display').textContent;navigator.clipboard.writeText(id).then(()=>showToast('ID 복사됨: '+id));}
+function copyId(){const id=document.getElementById('my-id-display').textContent;navigator.clipboard.writeText(id).then(()=>showToast(T('idCopied',id)));}
 let toastTimer;
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
 
@@ -969,80 +1895,43 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 window.addEventListener('resize',()=>{if(panelOpen&&currentTab==='wb') resizeWbCanvas();});
 
 // ── QUIZ ──
-const QUIZ_WORDS = [
-  // 동물
-  '강아지','고양이','코끼리','기린','펭귄','악어','독수리','상어','문어','캥거루',
-  // 음식
-  '피자','떡볶이','삼겹살','초밥','라면','치킨','아이스크림','파스타','햄버거','딸기',
-  // 직업
-  '의사','소방관','요리사','경찰','선생님','우주비행사','화가','프로게이머','마법사','탐정',
-  // 사물
-  '텔레비전','냉장고','자전거','비행기','잠수함','로켓','우산','망원경','피아노','기타',
-  // 장소
-  '놀이공원','도서관','수영장','박물관','산','바다','사막','동굴','우주정거장','피라미드',
-  // 스포츠
-  '축구','농구','야구','테니스','수영','스키','태권도','볼링','골프','양궁',
-  // 유명인·캐릭터
-  '해리포터','슈퍼맨','피카츄','도라에몽','스파이더맨','아이언맨','겨울왕국','신데렐라','마리오','루피',
-  // 행동
-  '춤추기','달리기','요리하기','노래하기','잠자기','청소하기','그림그리기','낚시','등산','수영',
-];
-
 const QUIZ_TIME = 30;
-let quizActive = false;
-let quizIsExplainer = false;
-let quizWord = '';
-let quizRound = 0;
-let quizScore = 0;
-let quizTimer = null;
-let quizSecondsLeft = QUIZ_TIME;
-let usedWords = [];
+let quizActive=false,quizIsExplainer=false,quizWord='',quizRound=0,quizScore=0;
+let quizTimer=null,quizSecondsLeft=QUIZ_TIME,usedWords=[];
 
-function startQuiz() {
-  if (quizActive) { quizStop(); return; }
-  quizActive = true;
-  quizIsExplainer = true;
-  quizScore = 0;
-  quizRound = 0;
-  usedWords = [];
-  document.getElementById('quiz-score').textContent = 0;
-  document.getElementById('btn-quiz').classList.add('active');
-  // 위치 초기화 (하단 중앙)
-  const qo = document.getElementById('quiz-overlay');
-  qo.style.top = ''; qo.style.left = ''; qo.style.bottom = '80px'; qo.style.transform = 'translateX(-50%)';
-  // Notify peer
-  sendData({ type: 'quiz-start' });
-  quizNextWord();
-}
-
-function quizNextWord() {
-  // Pick unused random word
-  const pool = QUIZ_WORDS.filter(w => !usedWords.includes(w));
-  if (pool.length === 0) usedWords = [];
-  const pool2 = QUIZ_WORDS.filter(w => !usedWords.includes(w));
-  quizWord = pool2[Math.floor(Math.random() * pool2.length)];
+function quizNextWord(){
+  const words=getQuizWords();
+  let pool=words.filter(w=>!usedWords.includes(w));
+  if(pool.length===0){usedWords=[];pool=words;}
+  quizWord=pool[Math.floor(Math.random()*pool.length)];
   usedWords.push(quizWord);
-  quizRound++;
-  quizSecondsLeft = QUIZ_TIME;
-
-  document.getElementById('quiz-word').textContent = quizWord;
-  document.getElementById('quiz-hint').textContent = `${quizRound}번째 문제 · ${quizWord.length}글자`;
-  document.getElementById('quiz-countdown').textContent = QUIZ_TIME;
+  quizRound++; quizSecondsLeft=QUIZ_TIME;
+  document.getElementById('quiz-word').textContent=quizWord;
+  document.getElementById('quiz-hint').textContent=T('quizHint',quizRound,quizWord.length);
+  document.getElementById('quiz-countdown').textContent=QUIZ_TIME;
   updateQuizRing(QUIZ_TIME);
   document.getElementById('quiz-ring').classList.remove('urgent');
-
   document.getElementById('quiz-overlay').classList.add('show');
-
   clearInterval(quizTimer);
-  quizTimer = setInterval(() => {
+  quizTimer=setInterval(()=>{
     quizSecondsLeft--;
-    document.getElementById('quiz-countdown').textContent = quizSecondsLeft;
+    document.getElementById('quiz-countdown').textContent=quizSecondsLeft;
     updateQuizRing(quizSecondsLeft);
-    if (quizSecondsLeft <= 10) document.getElementById('quiz-ring').classList.add('urgent');
-    // Sync timer to peer every second
-    sendData({ type: 'quiz-tick', round: quizRound, secondsLeft: quizSecondsLeft });
-    if (quizSecondsLeft <= 0) { quizTimeUp(); }
-  }, 1000);
+    if(quizSecondsLeft<=10) document.getElementById('quiz-ring').classList.add('urgent');
+    sendData({type:'quiz-tick',round:quizRound,secondsLeft:quizSecondsLeft});
+    if(quizSecondsLeft<=0){quizTimeUp();}
+  },1000);
+}
+
+function startQuiz(){
+  if(quizActive){quizStop();return;}
+  quizActive=true; quizIsExplainer=true; quizScore=0; quizRound=0; usedWords=[];
+  document.getElementById('quiz-score').textContent=0;
+  document.getElementById('btn-quiz').classList.add('active');
+  const qo=document.getElementById('quiz-overlay');
+  qo.style.top=''; qo.style.left=''; qo.style.bottom='80px'; qo.style.transform='translateX(-50%)';
+  sendData({type:'quiz-start'});
+  quizNextWord();
 }
 
 function updateQuizRing(s) {
@@ -1084,8 +1973,8 @@ function quizStop() {
   document.getElementById('btn-quiz').classList.remove('active');
   if (quizIsExplainer) {
     sendData({ type: 'quiz-end', score: quizScore, rounds: quizRound });
-    showToast(`퀴즈 종료 — ${quizRound}문제 중 ${quizScore}개 정답!`);
-    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:`퀴즈 종료! ${quizRound}문제 중 ${quizScore}개 정답`, time:Date.now() }, true);
+    showToast(T('quizEndToast',quizRound,quizScore));
+    appendChatMsg({ type:'chat', name:'🎯 Quiz', text:T('quizEndChat',quizRound,quizScore), time:Date.now() }, true);
   }
   quizIsExplainer = false;
 }
@@ -1106,27 +1995,27 @@ function handleQuizData(data) {
     // 위치 초기화 (하단 중앙)
     const qn = document.getElementById('quiz-notify');
     qn.style.top = ''; qn.style.left = ''; qn.style.bottom = '80px'; qn.style.transform = 'translateX(-50%)';
-    showToast('🎯 퀴즈 시작! 상대방이 설명하는 단어를 맞춰보세요');
-    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:'퀴즈가 시작됩니다! 상대방의 설명을 듣고 채팅으로 답하세요', time:Date.now() }, false);
+    showToast(T('quizStartToast'));
+    appendChatMsg({ type:'chat', name:'🎯 Quiz', text:T('quizStartChat'), time:Date.now() }, false);
   } else if (data.type === 'quiz-tick') {
     quizRound = data.round;
     document.getElementById('quiz-notify').classList.add('show');
-    document.getElementById('quiz-notify-round').textContent = `${data.round}번째 문제`;
+    document.getElementById('quiz-notify-round').textContent = T('quizRound',data.round);
     document.getElementById('quiz-notify-timer').textContent = data.secondsLeft;
     document.getElementById('quiz-notify-timer').style.color = data.secondsLeft <= 10 ? '#f55' : '#fff';
   } else if (data.type === 'quiz-correct') {
-    showToast(`✅ 정답! "${data.word}" (${data.score}점)`);
-    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:`정답! 단어는 "${data.word}"이었습니다 🎉 (${data.score}점)`, time:Date.now() }, false);
+    showToast(T('quizCorrectToast',data.word,data.score));
+    appendChatMsg({ type:'chat', name:'🎯 Quiz', text:T('quizCorrectChat',data.word,data.score), time:Date.now() }, false);
   } else if (data.type === 'quiz-skip') {
-    showToast(`⏭ 넘어감 — 단어: "${data.word}"`);
-    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:`패스! 단어는 "${data.word}"이었습니다`, time:Date.now() }, false);
+    showToast(T('quizSkipToast',data.word));
+    appendChatMsg({ type:'chat', name:'🎯 Quiz', text:T('quizSkipChat',data.word), time:Date.now() }, false);
   } else if (data.type === 'quiz-timeup') {
-    showToast('⏰ 시간 초과!');
+    showToast(T('quizTimeup'));
   } else if (data.type === 'quiz-end') {
     quizActive = false;
     document.getElementById('quiz-notify').classList.remove('show');
-    showToast(`퀴즈 종료 — ${data.rounds}문제 중 ${data.score}개 정답!`);
-    appendChatMsg({ type:'chat', name:'🎯 퀴즈', text:`퀴즈 종료! 총 ${data.rounds}문제 중 ${data.score}개 정답`, time:Date.now() }, false);
+    showToast(T('quizEndToast',data.rounds,data.score));
+    appendChatMsg({ type:'chat', name:'🎯 Quiz', text:T('quizEndChat',data.rounds,data.score), time:Date.now() }, false);
   }
 }
 
@@ -1262,8 +2151,10 @@ function handleQuizData(data) {
 })();
 
 // ── Boot ──
+// lobby는 auth 통과 후에 표시
+document.getElementById('lobby').style.display = 'none';
 setLobbyStatus('서버에 연결 중...','');
-initPeer();
+initAuth();
 </script>
 </body>
 </html>
