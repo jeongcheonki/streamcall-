@@ -123,13 +123,13 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 /* ── 자막 바 ── */
 .subtitle-bar{
   position:absolute;bottom:0;left:0;right:0;
-  min-height:56px;padding:10px 18px 12px;
-  background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.5) 100%);
-  display:flex;align-items:flex-end;gap:10px;
-  z-index:14;transition:opacity .35s;
+  min-height:56px;padding:10px 18px 14px;
+  background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.45) 100%);
+  display:none;align-items:flex-end;gap:10px;
+  z-index:20;
   pointer-events:none;
 }
-.subtitle-bar.hidden{opacity:0;pointer-events:none;}
+.subtitle-bar.visible{display:flex;}
 .subtitle-speaker{
   font-size:13px;font-weight:800;color:#fbbf24;
   white-space:nowrap;flex-shrink:0;padding-bottom:2px;letter-spacing:.3px;
@@ -780,7 +780,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
             <p id="call-status-txt">연결 중...</p>
           </div>
           <div class="vid-label" id="peer-vid-label">상대방</div>
-          <div class="subtitle-bar hidden" id="remote-subtitle-bar">
+          <div class="subtitle-bar" id="remote-subtitle-bar">
             <span class="subtitle-speaker" id="remote-sub-name">상대방</span>
             <span class="subtitle-text" id="remote-sub-text"></span>
           </div>
@@ -793,7 +793,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
             <span id="pip-cam-off-txt">카메라 꺼짐</span>
           </div>
           <div class="vid-label" id="local-vid-label">나</div>
-          <div class="subtitle-bar hidden" id="local-subtitle-bar">
+          <div class="subtitle-bar" id="local-subtitle-bar">
             <span class="subtitle-speaker" id="local-sub-name">나</span>
             <span class="subtitle-text" id="local-sub-text"></span>
           </div>
@@ -1780,7 +1780,7 @@ function startSTT(){
 
 function stopSTT(){
   sttEnabled=false;
-  clearTimeout(sttRestartTimer);clearTimeout(sttHideTimer);
+  clearTimeout(sttRestartTimer); clearTimeout(sttHideTimer);
   if(recognition){try{recognition.stop();}catch(e){}}
   sttFinalText='';
   hideSubtitle('local');
@@ -1791,12 +1791,12 @@ function toggleSubtitle(){
   if(!sttEnabled){
     startSTT();
     btn.classList.add('active');
-    btn.innerHTML='<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> \uc790\ub9c9 ON';
-    showToast('\ud83c\udfa4 \uc790\ub9c9\uc774 \ucf1c\uc84c\uc2b5\ub2c8\ub2e4. \ub9d0\uc460\ud558\uc138\uc694!');
+    btn.textContent='\uD83C\uDFA4 \uc790\ub9c9 ON';
+    showToast('\uD83C\uDFA4 \uc790\ub9c9\uc774 \ucf1c\uc84c\uc2b5\ub2c8\ub2e4. \ub9d0\uc460\ud558\uc138\uc694!');
   } else {
     stopSTT();
     btn.classList.remove('active');
-    btn.innerHTML='<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> \uc790 \ub9c9';
+    btn.textContent='\uc790 \ub9c9';
     hideSubtitle('remote');
     showToast('\uc790\ub9c9\uc774 \uaebc\uc84c\uc2b5\ub2c8\ub2e4');
   }
@@ -1810,11 +1810,11 @@ function showSubtitle(who,text,isInterim){
   nm.textContent=(who==='local')?(myName||'\ub098'):(document.getElementById('peer-name-disp')?.textContent||'\uc0c1\ub300\ubc29');
   span.textContent=text;
   span.className='subtitle-text'+(isInterim?' interim':'');
-  bar.classList.remove('hidden');
+  bar.classList.add('visible');
 }
 function hideSubtitle(who){
   const bar=document.getElementById(who+'-subtitle-bar');
-  if(bar) bar.classList.add('hidden');
+  if(bar) bar.classList.remove('visible');
 }
 
 // ── In-call controls ──
@@ -1877,7 +1877,7 @@ function endCallCleanup(){
   clearTimeout(remoteSubHideTimer);
   hideSubtitle('remote');
   const btn=document.getElementById('btn-subtitle');
-  if(btn){btn.classList.remove('active');btn.innerHTML='<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> 자 막';}
+  if(btn){btn.classList.remove('active');btn.textContent='자 막';}
   if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
   if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
   if(dataConn){dataConn.close();dataConn=null;}
