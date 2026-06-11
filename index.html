@@ -114,10 +114,49 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .video-cell video{width:100%;height:100%;object-fit:cover;display:block;}
 #local-vid{transform:scaleX(-1);}
 .vid-label{
-  position:absolute;bottom:100px;left:14px;
+  position:absolute;bottom:105px;left:14px;
   background:rgba(0,0,0,.7);border-radius:20px;
   padding:6px 16px;font-size:16px;color:#fff;font-weight:700;
   z-index:5;pointer-events:none;letter-spacing:.5px;
+}
+
+/* ── 자막 바 ── */
+.subtitle-bar{
+  position:absolute;bottom:0;left:0;right:0;
+  min-height:56px;padding:10px 18px 12px;
+  background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.5) 100%);
+  display:flex;align-items:flex-end;gap:10px;
+  z-index:14;transition:opacity .35s;
+  pointer-events:none;
+}
+.subtitle-bar.hidden{opacity:0;pointer-events:none;}
+.subtitle-speaker{
+  font-size:13px;font-weight:800;color:#fbbf24;
+  white-space:nowrap;flex-shrink:0;padding-bottom:2px;letter-spacing:.3px;
+}
+.subtitle-text{
+  font-size:20px;font-weight:500;color:#fff;line-height:1.5;
+  word-break:break-word;
+  text-shadow:0 1px 6px rgba(0,0,0,.9);
+}
+.subtitle-text.interim{color:rgba(255,255,255,.55);font-style:italic;}
+/* 자막 버튼 */
+.sub-btn{
+  padding:10px 16px;border-radius:10px;
+  border:2px solid rgba(251,191,36,.45);
+  background:rgba(251,191,36,.1);
+  color:#fbbf24;font-size:14px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:.15s;white-space:nowrap;
+}
+.sub-btn:hover{background:rgba(251,191,36,.22);border-color:#fbbf24;}
+.sub-btn.active{
+  background:rgba(251,191,36,.28);border-color:#fbbf24;
+  animation:sub-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sub-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.5);}
+  50%{box-shadow:0 0 0 6px rgba(251,191,36,0);}
 }
 .remote-placeholder-call{
   position:absolute;inset:0;display:flex;flex-direction:column;
@@ -336,7 +375,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 #quiz-overlay{
   display:none;position:absolute;
   bottom:90px;left:50%;transform:translateX(-50%);
-  z-index:50;width:min(380px,46vw);user-select:none;
+  z-index:50;width:min(420px,52vw);user-select:none;
 }
 #quiz-overlay.show{display:block;}
 #quiz-overlay.dragging{cursor:grabbing;}
@@ -352,6 +391,28 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .quiz-score-badge{font-size:14px;color:rgba(255,255,255,.6);background:rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;}
 .quiz-word{font-size:clamp(26px,4.5vw,40px);font-weight:800;color:#fff;text-align:center;letter-spacing:-.5px;}
 .quiz-hint{font-size:14px;color:rgba(255,255,255,.4);text-align:center;}
+
+/* ── 퀴즈 그림 ── */
+.quiz-image-wrap{
+  width:100%;height:140px;border-radius:14px;overflow:hidden;
+  background:rgba(255,255,255,.05);
+  border:1.5px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;flex-shrink:0;
+}
+.quiz-image-wrap svg{width:100%;height:100%;}
+.quiz-img-loading{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  color:rgba(255,255,255,.3);font-size:13px;
+}
+.quiz-img-spinner{
+  width:30px;height:30px;
+  border:3px solid rgba(255,255,255,.1);
+  border-top-color:#fbbf24;
+  border-radius:50%;
+  animation:qspin .75s linear infinite;
+}
+@keyframes qspin{to{transform:rotate(360deg);}}
 .quiz-timer-wrap{position:relative;width:72px;height:72px;flex-shrink:0;}
 .quiz-timer-svg{transform:rotate(-90deg);}
 .quiz-timer-bg{fill:none;stroke:rgba(255,255,255,.1);stroke-width:5;}
@@ -368,39 +429,6 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .quiz-btn.stop:hover{background:rgba(220,38,38,.35);}
 .quiz-result-flash{position:absolute;inset:0;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:56px;opacity:0;pointer-events:none;transition:opacity .2s;}
 .quiz-result-flash.show{opacity:1;}
-
-/* ── 자막 (Speech-to-Text) ── */
-.subtitle-bar{
-  position:absolute;bottom:0;left:0;right:0;
-  min-height:52px;padding:10px 16px;
-  background:linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.55) 100%);
-  display:flex;align-items:flex-end;gap:10px;
-  pointer-events:none;z-index:15;
-  transition:opacity .3s;
-}
-.subtitle-bar.hidden{opacity:0;}
-.subtitle-name{
-  font-size:13px;font-weight:700;color:#fbbf24;
-  white-space:nowrap;flex-shrink:0;padding-bottom:2px;
-}
-.subtitle-text{
-  font-size:18px;font-weight:500;color:#fff;line-height:1.5;
-  word-break:break-word;
-  text-shadow:0 1px 4px rgba(0,0,0,.8);
-}
-.subtitle-text.interim{color:rgba(255,255,255,.6);font-style:italic;}
-/* 자막 버튼 활성 상태 */
-.ctrl-btn.stt-on{
-  background:rgba(251,191,36,.25);
-  border-color:rgba(251,191,36,.6);
-  color:#fbbf24;
-  animation:stt-pulse 1.5s ease-in-out infinite;
-}
-.ctrl-btn.stt-on .btn-label{color:#fbbf24;}
-@keyframes stt-pulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.4);}
-  50%{box-shadow:0 0 0 6px rgba(251,191,36,0);}
-}
 .quiz-notify{
   display:none;position:absolute;bottom:90px;left:50%;transform:translateX(-50%);
   z-index:50;width:min(260px,32vw);user-select:none;
@@ -752,10 +780,9 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
             <p id="call-status-txt">연결 중...</p>
           </div>
           <div class="vid-label" id="peer-vid-label">상대방</div>
-          <!-- 상대방 자막 -->
           <div class="subtitle-bar hidden" id="remote-subtitle-bar">
-            <span class="subtitle-name" id="remote-subtitle-name">상대방</span>
-            <span class="subtitle-text" id="remote-subtitle-text"></span>
+            <span class="subtitle-speaker" id="remote-sub-name">상대방</span>
+            <span class="subtitle-text" id="remote-sub-text"></span>
           </div>
         </div>
         <!-- Local (나) -->
@@ -766,10 +793,9 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
             <span id="pip-cam-off-txt">카메라 꺼짐</span>
           </div>
           <div class="vid-label" id="local-vid-label">나</div>
-          <!-- 내 자막 (음성 인식 결과) -->
           <div class="subtitle-bar hidden" id="local-subtitle-bar">
-            <span class="subtitle-name" id="local-subtitle-name">나</span>
-            <span class="subtitle-text" id="local-subtitle-text"></span>
+            <span class="subtitle-speaker" id="local-sub-name">나</span>
+            <span class="subtitle-text" id="local-sub-text"></span>
           </div>
         </div>
       </div>
@@ -793,6 +819,13 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
             <div class="quiz-timer-num" id="quiz-countdown">30</div>
           </div>
           <div class="quiz-word" id="quiz-word">—</div>
+          <!-- 단어 그림 (AI 생성) -->
+          <div class="quiz-image-wrap" id="quiz-image-wrap">
+            <div class="quiz-img-loading">
+              <div class="quiz-img-spinner"></div>
+              <span>그림 불러오는 중...</span>
+            </div>
+          </div>
           <div class="quiz-hint" id="quiz-hint"></div>
           <div class="quiz-actions">
             <button class="quiz-btn correct" id="quiz-correct-btn" onclick="quizCorrect()">✅ 정답!</button>
@@ -818,9 +851,9 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
           <strong id="peer-name-disp">상대방</strong>
         </div>
         <div class="ctrl-center">
-          <button class="ctrl-btn" id="ctrl-mic" title="마이크 / 자막" onclick="ctrlMic()">
+          <button class="ctrl-btn" id="ctrl-mic" title="마이크" onclick="ctrlMic()">
             <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-            <span class="btn-label" id="mic-btn-label">마이크</span>
+            <span class="btn-label">마이크</span>
           </button>
           <button class="ctrl-btn" id="ctrl-cam" title="카메라" onclick="ctrlCam()">
             <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
@@ -851,6 +884,11 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
           <button class="side-btn quiz-start-btn" id="btn-quiz" onclick="startQuiz()">
             <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span id="quiz-btn-txt">퀴즈 시작</span>
+          </button>
+          <!-- 자막 버튼 -->
+          <button class="sub-btn" id="btn-subtitle" onclick="toggleSubtitle()">
+            <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg>
+            자 막
           </button>
         </div>
       </div>
@@ -1582,7 +1620,14 @@ function setupDataConn(conn){
     else if(data.type==='wb-draw') wbReceiveDraw(data);
     else if(data.type==='wb-clear') wbClearLocal();
     else if(data.type==='wb-undo') wbUndoLocal();
-    else if(data.type==='subtitle') showRemoteSubtitle(data.text, data.interim, data.name);
+    else if(data.type==='subtitle'){
+      // 자막 켜진 상태에서만 상대방 자막 표시
+      if(sttEnabled){
+        showSubtitle('remote', data.text, data.interim);
+        clearTimeout(remoteSubHideTimer);
+        remoteSubHideTimer=setTimeout(()=>hideSubtitle('remote'), 3500);
+      }
+    }
     else if(data.type.startsWith('quiz-')) handleQuizData(data);
   });
   conn.on('close',()=>{ dataConn=null; });
@@ -1685,18 +1730,16 @@ function enterCallScreen(stream){
   micEnabled=true; camEnabled=preCamOn;
   updateCtrlMic(); updateCtrlCam();
   initWhiteboard();
-  // 통화 시작과 함께 자막 자동 시작
-  setTimeout(()=>startSTT(), 800);
 }
 
-// ── 음성인식(STT) 자막 시스템 ──
+// ── 자막(STT) 시스템 ──
 const STT_LANG_MAP={ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN',es:'es-ES',fr:'fr-FR'};
-let recognition=null,sttActive=false,sttFinalText='';
-let subtitleTimer=null,sttRestarting=false;
+let recognition=null,sttEnabled=false,sttFinalText='';
+let sttRestartTimer=null,sttHideTimer=null,remoteSubHideTimer=null;
 
 function initSTT(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){showToast('\u26a0\ufe0f Chrome \ube0c\ub77c\uc6b0\uc800\uc5d0\uc11c\ub9cc \uc790\ub9c9\uc774 \uc9c0\uc6d0\ub429\ub2c8\ub2e4');return false;}
+  if(!SR){showToast('\u26a0\ufe0f \uc790\ub9c9\uc740 Chrome/Edge\uc5d0\uc11c\ub9cc \uc9c0\uc6d0\ub429\ub2c8\ub2e4');return false;}
   recognition=new SR();
   recognition.continuous=true;
   recognition.interimResults=true;
@@ -1708,20 +1751,21 @@ function initSTT(){
       const tx=e.results[i][0].transcript;
       if(e.results[i].isFinal) finalNew+=tx; else interim+=tx;
     }
-    if(finalNew){sttFinalText+=finalNew;if(sttFinalText.length>120)sttFinalText=sttFinalText.slice(-100);}
-    const display=sttFinalText+(interim?' '+interim:'');
-    showLocalSubtitle(display,!!interim);
+    if(finalNew){sttFinalText+=finalNew;if(sttFinalText.length>150)sttFinalText=sttFinalText.slice(-120);}
+    const display=(sttFinalText+(interim?' '+interim:'')).trim();
+    if(!display) return;
+    showSubtitle('local',display,!!interim);
     sendData({type:'subtitle',text:display,interim:!!interim,name:myName||'\ub098'});
-    clearTimeout(subtitleTimer);
-    subtitleTimer=setTimeout(()=>{if(!interim){sttFinalText='';hideLocalSubtitle();}},3000);
+    clearTimeout(sttHideTimer);
+    sttHideTimer=setTimeout(()=>{if(!interim){sttFinalText='';hideSubtitle('local');}},3200);
   };
   recognition.onerror=(e)=>{
-    if(e.error==='not-allowed'){showToast('\ud83c\udfa4 \ub9c8\uc774\ud06c \uad8c\ud55c\uc774 \ud544\uc694\ud569\ub2c8\ub2e4');stopSTT(false);}
+    if(e.error==='not-allowed'){showToast('\ud83c\udfa4 \ub9c8\uc774\ud06c \uad8c\ud55c\uc774 \ud544\uc694\ud569\ub2c8\ub2e4');stopSTT();}
   };
   recognition.onend=()=>{
-    if(sttActive&&!sttRestarting){
-      sttRestarting=true;
-      setTimeout(()=>{sttRestarting=false;if(sttActive&&recognition){try{recognition.start();}catch(e){}}},300);
+    if(sttEnabled){
+      clearTimeout(sttRestartTimer);
+      sttRestartTimer=setTimeout(()=>{if(sttEnabled&&recognition){try{recognition.start();}catch(e){}}},250);
     }
   };
   return true;
@@ -1730,56 +1774,56 @@ function initSTT(){
 function startSTT(){
   if(!recognition&&!initSTT()) return;
   recognition.lang=STT_LANG_MAP[currentLang]||'ko-KR';
-  sttActive=true;sttFinalText='';
+  sttEnabled=true; sttFinalText='';
   try{recognition.start();}catch(e){}
-  document.getElementById('ctrl-mic').classList.add('stt-on');
-  const lbl=document.getElementById('mic-btn-label');
-  if(lbl) lbl.textContent='\uc790\ub9c9ON';
-  showToast('\ud83c\udfa4 \uc790\ub9c9 \ucf1c\uc9d0 \u2014 \ub9d0\uc528\ud558\uc138\uc694!');
 }
 
-function stopSTT(msg=true){
-  sttActive=false;
+function stopSTT(){
+  sttEnabled=false;
+  clearTimeout(sttRestartTimer);clearTimeout(sttHideTimer);
   if(recognition){try{recognition.stop();}catch(e){}}
-  sttFinalText='';hideLocalSubtitle();
-  document.getElementById('ctrl-mic').classList.remove('stt-on');
-  const lbl=document.getElementById('mic-btn-label');
-  if(lbl) lbl.textContent='\ub9c8\uc774\ud06c';
-  if(msg) showToast('\ud83d\udd07 \uc790\ub9c9 \uaebc\uc9d0');
+  sttFinalText='';
+  hideSubtitle('local');
 }
 
-function showLocalSubtitle(text,isInterim){
-  const bar=document.getElementById('local-subtitle-bar');
-  const span=document.getElementById('local-subtitle-text');
-  const nm=document.getElementById('local-subtitle-name');
+function toggleSubtitle(){
+  const btn=document.getElementById('btn-subtitle');
+  if(!sttEnabled){
+    startSTT();
+    btn.classList.add('active');
+    btn.innerHTML='<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> \uc790\ub9c9 ON';
+    showToast('\ud83c\udfa4 \uc790\ub9c9\uc774 \ucf1c\uc84c\uc2b5\ub2c8\ub2e4. \ub9d0\uc460\ud558\uc138\uc694!');
+  } else {
+    stopSTT();
+    btn.classList.remove('active');
+    btn.innerHTML='<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> \uc790 \ub9c9';
+    hideSubtitle('remote');
+    showToast('\uc790\ub9c9\uc774 \uaebc\uc84c\uc2b5\ub2c8\ub2e4');
+  }
+}
+
+function showSubtitle(who,text,isInterim){
+  const bar=document.getElementById(who+'-subtitle-bar');
+  const span=document.getElementById(who+'-sub-text');
+  const nm=document.getElementById(who+'-sub-name');
   if(!bar||!span) return;
-  nm.textContent=myName||'\ub098';
+  nm.textContent=(who==='local')?(myName||'\ub098'):(document.getElementById('peer-name-disp')?.textContent||'\uc0c1\ub300\ubc29');
   span.textContent=text;
   span.className='subtitle-text'+(isInterim?' interim':'');
   bar.classList.remove('hidden');
 }
-function hideLocalSubtitle(){const bar=document.getElementById('local-subtitle-bar');if(bar)bar.classList.add('hidden');}
-
-let remoteSubTimer=null;
-function showRemoteSubtitle(text,isInterim,senderName){
-  const bar=document.getElementById('remote-subtitle-bar');
-  const span=document.getElementById('remote-subtitle-text');
-  const nm=document.getElementById('remote-subtitle-name');
-  if(!bar||!span) return;
-  nm.textContent=senderName||'\uc0c1\ub300\ubc29';
-  span.textContent=text;
-  span.className='subtitle-text'+(isInterim?' interim':'');
-  bar.classList.remove('hidden');
-  clearTimeout(remoteSubTimer);
-  remoteSubTimer=setTimeout(()=>bar.classList.add('hidden'),3500);
+function hideSubtitle(who){
+  const bar=document.getElementById(who+'-subtitle-bar');
+  if(bar) bar.classList.add('hidden');
 }
 
 // ── In-call controls ──
 function ctrlMic(){
   micEnabled=!micEnabled;
   if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=micEnabled);
-  if(micEnabled){updateCtrlMic();startSTT();}
-  else{stopSTT(false);updateCtrlMic();showToast(T('micOff'));}
+  if(!micEnabled&&sttEnabled){try{recognition?.stop();}catch(e){}}
+  else if(micEnabled&&sttEnabled){try{recognition?.start();}catch(e){}}
+  updateCtrlMic(); showToast(micEnabled?T('micOn'):T('micOff'));
 }
 function ctrlCam(){
   camEnabled=!camEnabled;
@@ -1787,13 +1831,7 @@ function ctrlCam(){
   document.getElementById('pip-cam-off').style.display=camEnabled?'none':'flex';
   updateCtrlCam(); showToast(camEnabled?T('camOn'):T('camOffToast'));
 }
-function updateCtrlMic(){
-  const btn=document.getElementById('ctrl-mic');
-  const lbl=document.getElementById('mic-btn-label');
-  if(!micEnabled){btn.className='ctrl-btn off';if(lbl)lbl.textContent='\ub9c8\uc774\ud06cOFF';}
-  else if(sttActive){btn.className='ctrl-btn stt-on';if(lbl)lbl.textContent='\uc790\ub9c9ON';}
-  else{btn.className='ctrl-btn';if(lbl)lbl.textContent='\ub9c8\uc774\ud06c';}
-}
+function updateCtrlMic(){document.getElementById('ctrl-mic').className='ctrl-btn'+(micEnabled?'':' off');}
 function updateCtrlCam(){document.getElementById('ctrl-cam').className='ctrl-btn'+(camEnabled?'':' off');}
 async function ctrlShare(){
   const btn=document.getElementById('ctrl-share');
@@ -1834,12 +1872,12 @@ async function flipCamera(){
 function hangUp(){if(currentCall)currentCall.close();endCallCleanup();}
 function endCallCleanup(){
   clearInterval(timerInterval);timerInterval=null;elapsed=0;
-  // STT 정리
-  stopSTT(false);
-  clearTimeout(remoteSubTimer);
-  hideLocalSubtitle();
-  const rsb=document.getElementById('remote-subtitle-bar');
-  if(rsb) rsb.classList.add('hidden');
+  // 자막 정리
+  stopSTT();
+  clearTimeout(remoteSubHideTimer);
+  hideSubtitle('remote');
+  const btn=document.getElementById('btn-subtitle');
+  if(btn){btn.classList.remove('active');btn.innerHTML='<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> 자 막';}
   if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
   if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
   if(dataConn){dataConn.close();dataConn=null;}
@@ -2126,6 +2164,10 @@ function quizNextWord(){
   updateQuizRing(QUIZ_TIME);
   document.getElementById('quiz-ring').classList.remove('urgent');
   document.getElementById('quiz-overlay').classList.add('show');
+
+  // 단어 그림 생성
+  generateQuizImage(quizWord);
+
   clearInterval(quizTimer);
   quizTimer=setInterval(()=>{
     quizSecondsLeft--;
@@ -2136,6 +2178,132 @@ function quizNextWord(){
     if(quizSecondsLeft<=0){quizTimeUp();}
   },1000);
 }
+
+// ── 퀴즈 그림 생성 (Claude AI) ──
+const quizImageCache = {};  // 단어 → SVG 캐시
+
+async function generateQuizImage(word) {
+  const wrap = document.getElementById('quiz-image-wrap');
+  if (!wrap) return;
+
+  // 캐시 있으면 즉시 표시
+  if (quizImageCache[word]) {
+    renderQuizImage(quizImageCache[word]);
+    return;
+  }
+
+  // 로딩 표시
+  wrap.innerHTML = `
+    <div class="quiz-img-loading">
+      <div class="quiz-img-spinner"></div>
+      <span>그림 불러오는 중...</span>
+    </div>`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content:
+`단어 "${word}"를 나타내는 SVG 일러스트를 그려줘.
+
+조건:
+- viewBox="0 0 200 130" 고정
+- 배경 rect 없음 (투명)
+- 단순하고 귀여운 아이콘 스타일
+- 어두운 배경에 잘 보이도록 밝은 색상 사용
+- <text> <tspan> 요소 절대 사용 금지
+- SVG 코드만 출력, 설명 없이`
+        }]
+      })
+    });
+
+    const data = await res.json();
+    const raw  = (data.content?.[0]?.text) || '';
+    const match = raw.match(/<svg[\s\S]*?<\/svg>/i);
+
+    if (match) {
+      const safe = sanitizeSvg(match[0]);
+      quizImageCache[word] = safe;
+      renderQuizImage(safe);
+    } else {
+      renderEmojiFallback(word);
+    }
+  } catch(e) {
+    renderEmojiFallback(word);
+  }
+}
+
+function renderQuizImage(svgStr) {
+  const wrap = document.getElementById('quiz-image-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = svgStr;
+  const svg = wrap.querySelector('svg');
+  if (svg) { svg.style.width = '100%'; svg.style.height = '100%'; }
+}
+
+function renderEmojiFallback(word) {
+  const wrap = document.getElementById('quiz-image-wrap');
+  if (!wrap) return;
+  const em = WORD_EMOJI[word] || WORD_EMOJI[word?.toLowerCase()] || '🎯';
+  wrap.innerHTML = `<div style="font-size:80px;line-height:1;user-select:none">${em}</div>`;
+}
+
+// SVG 보안 정제 — 스크립트·이벤트핸들러 제거
+function sanitizeSvg(s) {
+  return s
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/on\w+\s*=/gi, 'data-x=')
+    .replace(/javascript:/gi, '')
+    .replace(/<use[^>]*>/gi, '')
+    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/<text[\s\S]*?<\/text>/gi, '')
+    .replace(/<tspan[\s\S]*?<\/tspan>/gi, '');
+}
+
+// 이모지 폴백 매핑
+const WORD_EMOJI = {
+  // 동물
+  '강아지':'🐶','고양이':'🐱','코끼리':'🐘','기린':'🦒','펭귄':'🐧',
+  '악어':'🐊','독수리':'🦅','상어':'🦈','문어':'🐙','캥거루':'🦘',
+  'dog':'🐶','cat':'🐱','elephant':'🐘','giraffe':'🦒','penguin':'🐧',
+  'crocodile':'🐊','eagle':'🦅','shark':'🦈','octopus':'🐙','kangaroo':'🦘',
+  '犬':'🐶','猫':'🐱','象':'🐘','狗':'🐶',
+  // 음식
+  '피자':'🍕','떡볶이':'🍢','삼겹살':'🥩','초밥':'🍣','라면':'🍜',
+  '치킨':'🍗','아이스크림':'🍦','파스타':'🍝','햄버거':'🍔','딸기':'🍓',
+  'pizza':'🍕','sushi':'🍣','hamburger':'🍔','noodles':'🍜','chicken':'🍗',
+  'ice cream':'🍦','pasta':'🍝','strawberry':'🍓','taco':'🌮','sandwich':'🥪',
+  '寿司':'🍣','ピザ':'🍕','ラーメン':'🍜','披萨':'🍕','寿司2':'🍣',
+  // 직업
+  '의사':'👨‍⚕️','소방관':'👨‍🚒','요리사':'👨‍🍳','경찰':'👮','선생님':'👨‍🏫',
+  '우주비행사':'👨‍🚀','화가':'🎨','탐정':'🕵️','마법사':'🧙',
+  'doctor':'👨‍⚕️','firefighter':'👨‍🚒','chef':'👨‍🍳','police':'👮',
+  'teacher':'👨‍🏫','astronaut':'👨‍🚀','painter':'🎨','magician':'🧙','detective':'🕵️',
+  // 사물
+  '피아노':'🎹','기타':'🎸','자전거':'🚲','비행기':'✈️','잠수함':'🚢',
+  '로켓':'🚀','우산':'☂️','망원경':'🔭','텔레비전':'📺','냉장고':'🧊',
+  'piano':'🎹','guitar':'🎸','bicycle':'🚲','airplane':'✈️','rocket':'🚀',
+  'umbrella':'☂️','telescope':'🔭','television':'📺','refrigerator':'🧊',
+  // 장소
+  '놀이공원':'🎡','도서관':'📚','수영장':'🏊','박물관':'🏛️',
+  '산':'⛰️','바다':'🌊','사막':'🏜️','동굴':'🕳️','피라미드':'🔺',
+  'mountain':'⛰️','ocean':'🌊','desert':'🏜️','library':'📚','museum':'🏛️',
+  // 스포츠
+  '축구':'⚽','농구':'🏀','야구':'⚾','테니스':'🎾','수영':'🏊',
+  '스키':'⛷️','볼링':'🎳','골프':'⛳','양궁':'🏹','태권도':'🥋',
+  'soccer':'⚽','basketball':'🏀','baseball':'⚾','tennis':'🎾','swimming':'🏊',
+  'skiing':'⛷️','bowling':'🎳','golf':'⛳','archery':'🏹',
+  // 행동
+  '춤추기':'💃','달리기':'🏃','요리하기':'🍳','노래하기':'🎤',
+  '잠자기':'😴','청소하기':'🧹','그림그리기':'🖌️','낚시':'🎣','등산':'🧗',
+  'dancing':'💃','running':'🏃','cooking':'🍳','singing':'🎤',
+  'sleeping':'😴','cleaning':'🧹','drawing':'🖌️','fishing':'🎣','hiking':'🧗',
+};
 
 function startQuiz(){
   if(quizActive){quizStop();return;}
