@@ -114,49 +114,10 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .video-cell video{width:100%;height:100%;object-fit:cover;display:block;}
 #local-vid{transform:scaleX(-1);}
 .vid-label{
-  position:absolute;bottom:105px;left:14px;
+  position:absolute;bottom:90px;left:14px;
   background:rgba(0,0,0,.7);border-radius:20px;
   padding:6px 16px;font-size:16px;color:#fff;font-weight:700;
   z-index:5;pointer-events:none;letter-spacing:.5px;
-}
-
-/* ── 자막 바 ── */
-.subtitle-bar{
-  position:absolute;bottom:0;left:0;right:0;
-  min-height:56px;padding:10px 18px 14px;
-  background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.45) 100%);
-  display:none;align-items:flex-end;gap:10px;
-  z-index:20;
-  pointer-events:none;
-}
-.subtitle-bar.visible{display:flex;}
-.subtitle-speaker{
-  font-size:13px;font-weight:800;color:#fbbf24;
-  white-space:nowrap;flex-shrink:0;padding-bottom:2px;letter-spacing:.3px;
-}
-.subtitle-text{
-  font-size:20px;font-weight:500;color:#fff;line-height:1.5;
-  word-break:break-word;
-  text-shadow:0 1px 6px rgba(0,0,0,.9);
-}
-.subtitle-text.interim{color:rgba(255,255,255,.55);font-style:italic;}
-/* 자막 버튼 */
-.sub-btn{
-  padding:10px 16px;border-radius:10px;
-  border:2px solid rgba(251,191,36,.45);
-  background:rgba(251,191,36,.1);
-  color:#fbbf24;font-size:14px;font-weight:700;
-  cursor:pointer;display:flex;align-items:center;gap:6px;
-  transition:.15s;white-space:nowrap;
-}
-.sub-btn:hover{background:rgba(251,191,36,.22);border-color:#fbbf24;}
-.sub-btn.active{
-  background:rgba(251,191,36,.28);border-color:#fbbf24;
-  animation:sub-pulse 1.6s ease-in-out infinite;
-}
-@keyframes sub-pulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.5);}
-  50%{box-shadow:0 0 0 6px rgba(251,191,36,0);}
 }
 .remote-placeholder-call{
   position:absolute;inset:0;display:flex;flex-direction:column;
@@ -577,6 +538,62 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
   .end-btn{width:66px;height:66px;}
   .side-btns{flex-direction:row;flex-wrap:wrap;}
 }
+
+/* ── 자막 버튼 ── */
+.sub-btn{
+  padding:10px 16px;border-radius:10px;
+  border:2px solid rgba(251,191,36,.5);
+  background:rgba(251,191,36,.1);
+  color:#fbbf24;font-size:14px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:.15s;white-space:nowrap;
+}
+.sub-btn:hover{background:rgba(251,191,36,.22);border-color:#fbbf24;}
+.sub-btn.on{
+  background:rgba(251,191,36,.3);border-color:#fbbf24;color:#fbbf24;
+  animation:sub-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sub-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.5);}
+  50%{box-shadow:0 0 0 7px rgba(251,191,36,0);}
+}
+
+/* ── 자막 표시 박스 (화면 중앙, video-stage 위) ── */
+#subtitle-box{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:min(420px,88%);
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  z-index:40;
+  pointer-events:none;
+  text-align:center;
+}
+#subtitle-box.on{display:flex;}
+.sub-item{
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+}
+.sub-item.show{display:flex;}
+.sub-who{
+  font-size:12px;font-weight:800;color:#000;
+  letter-spacing:.5px;
+  text-shadow:0 0 5px #fff,0 0 8px #fff;
+}
+.sub-words{
+  font-size:22px;font-weight:700;color:#000;
+  line-height:1.5;word-break:break-word;
+  text-shadow:
+    -2px -2px 0 #fff, 2px -2px 0 #fff,
+    -2px  2px 0 #fff, 2px  2px 0 #fff,
+     0    0   8px rgba(255,255,255,.95);
+}
+.sub-words.interim{color:#111;opacity:.6;font-style:italic;}
 </style>
 </head>
 <body>
@@ -780,10 +797,6 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
             <p id="call-status-txt">연결 중...</p>
           </div>
           <div class="vid-label" id="peer-vid-label">상대방</div>
-          <div class="subtitle-bar" id="remote-subtitle-bar">
-            <span class="subtitle-speaker" id="remote-sub-name">상대방</span>
-            <span class="subtitle-text" id="remote-sub-text"></span>
-          </div>
         </div>
         <!-- Local (나) -->
         <div class="video-cell" id="local-cell">
@@ -793,12 +806,21 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
             <span id="pip-cam-off-txt">카메라 꺼짐</span>
           </div>
           <div class="vid-label" id="local-vid-label">나</div>
-          <div class="subtitle-bar" id="local-subtitle-bar">
-            <span class="subtitle-speaker" id="local-sub-name">나</span>
-            <span class="subtitle-text" id="local-sub-text"></span>
-          </div>
         </div>
       </div>
+
+      <!-- 자막 박스 : 화면 중앙 -->
+      <div id="subtitle-box">
+        <div class="sub-item" id="sub-remote">
+          <span class="sub-who" id="sub-remote-who">상대방</span>
+          <span class="sub-words" id="sub-remote-words"></span>
+        </div>
+        <div class="sub-item" id="sub-local">
+          <span class="sub-who" id="sub-local-who">나</span>
+          <span class="sub-words" id="sub-local-words"></span>
+        </div>
+      </div>
+
       <div class="hud-top">
         <div class="badge"><span class="dot"></span> <span id="connected-badge-txt">연결됨</span></div>
         <div class="badge" id="timer-badge">00:00</div>
@@ -885,10 +907,9 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
             <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span id="quiz-btn-txt">퀴즈 시작</span>
           </button>
-          <!-- 자막 버튼 -->
           <button class="sub-btn" id="btn-subtitle" onclick="toggleSubtitle()">
             <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg>
-            자 막
+            자막
           </button>
         </div>
       </div>
@@ -1620,14 +1641,7 @@ function setupDataConn(conn){
     else if(data.type==='wb-draw') wbReceiveDraw(data);
     else if(data.type==='wb-clear') wbClearLocal();
     else if(data.type==='wb-undo') wbUndoLocal();
-    else if(data.type==='subtitle'){
-      // 자막 켜진 상태에서만 상대방 자막 표시
-      if(sttEnabled){
-        showSubtitle('remote', data.text, data.interim);
-        clearTimeout(remoteSubHideTimer);
-        remoteSubHideTimer=setTimeout(()=>hideSubtitle('remote'), 3500);
-      }
-    }
+    else if(data.type==='subtitle') sttReceive(data);
     else if(data.type.startsWith('quiz-')) handleQuizData(data);
   });
   conn.on('close',()=>{ dataConn=null; });
@@ -1732,97 +1746,10 @@ function enterCallScreen(stream){
   initWhiteboard();
 }
 
-// ── 자막(STT) 시스템 ──
-const STT_LANG_MAP={ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN',es:'es-ES',fr:'fr-FR'};
-let recognition=null,sttEnabled=false,sttFinalText='';
-let sttRestartTimer=null,sttHideTimer=null,remoteSubHideTimer=null;
-
-function initSTT(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){showToast('\u26a0\ufe0f \uc790\ub9c9\uc740 Chrome/Edge\uc5d0\uc11c\ub9cc \uc9c0\uc6d0\ub429\ub2c8\ub2e4');return false;}
-  recognition=new SR();
-  recognition.continuous=true;
-  recognition.interimResults=true;
-  recognition.maxAlternatives=1;
-  recognition.lang=STT_LANG_MAP[currentLang]||'ko-KR';
-  recognition.onresult=(e)=>{
-    let interim='',finalNew='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const tx=e.results[i][0].transcript;
-      if(e.results[i].isFinal) finalNew+=tx; else interim+=tx;
-    }
-    if(finalNew){sttFinalText+=finalNew;if(sttFinalText.length>150)sttFinalText=sttFinalText.slice(-120);}
-    const display=(sttFinalText+(interim?' '+interim:'')).trim();
-    if(!display) return;
-    showSubtitle('local',display,!!interim);
-    sendData({type:'subtitle',text:display,interim:!!interim,name:myName||'\ub098'});
-    clearTimeout(sttHideTimer);
-    sttHideTimer=setTimeout(()=>{if(!interim){sttFinalText='';hideSubtitle('local');}},3200);
-  };
-  recognition.onerror=(e)=>{
-    if(e.error==='not-allowed'){showToast('\ud83c\udfa4 \ub9c8\uc774\ud06c \uad8c\ud55c\uc774 \ud544\uc694\ud569\ub2c8\ub2e4');stopSTT();}
-  };
-  recognition.onend=()=>{
-    if(sttEnabled){
-      clearTimeout(sttRestartTimer);
-      sttRestartTimer=setTimeout(()=>{if(sttEnabled&&recognition){try{recognition.start();}catch(e){}}},250);
-    }
-  };
-  return true;
-}
-
-function startSTT(){
-  if(!recognition&&!initSTT()) return;
-  recognition.lang=STT_LANG_MAP[currentLang]||'ko-KR';
-  sttEnabled=true; sttFinalText='';
-  try{recognition.start();}catch(e){}
-}
-
-function stopSTT(){
-  sttEnabled=false;
-  clearTimeout(sttRestartTimer); clearTimeout(sttHideTimer);
-  if(recognition){try{recognition.stop();}catch(e){}}
-  sttFinalText='';
-  hideSubtitle('local');
-}
-
-function toggleSubtitle(){
-  const btn=document.getElementById('btn-subtitle');
-  if(!sttEnabled){
-    startSTT();
-    btn.classList.add('active');
-    btn.textContent='\uD83C\uDFA4 \uc790\ub9c9 ON';
-    showToast('\uD83C\uDFA4 \uc790\ub9c9\uc774 \ucf1c\uc84c\uc2b5\ub2c8\ub2e4. \ub9d0\uc460\ud558\uc138\uc694!');
-  } else {
-    stopSTT();
-    btn.classList.remove('active');
-    btn.textContent='\uc790 \ub9c9';
-    hideSubtitle('remote');
-    showToast('\uc790\ub9c9\uc774 \uaebc\uc84c\uc2b5\ub2c8\ub2e4');
-  }
-}
-
-function showSubtitle(who,text,isInterim){
-  const bar=document.getElementById(who+'-subtitle-bar');
-  const span=document.getElementById(who+'-sub-text');
-  const nm=document.getElementById(who+'-sub-name');
-  if(!bar||!span) return;
-  nm.textContent=(who==='local')?(myName||'\ub098'):(document.getElementById('peer-name-disp')?.textContent||'\uc0c1\ub300\ubc29');
-  span.textContent=text;
-  span.className='subtitle-text'+(isInterim?' interim':'');
-  bar.classList.add('visible');
-}
-function hideSubtitle(who){
-  const bar=document.getElementById(who+'-subtitle-bar');
-  if(bar) bar.classList.remove('visible');
-}
-
 // ── In-call controls ──
 function ctrlMic(){
   micEnabled=!micEnabled;
   if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=micEnabled);
-  if(!micEnabled&&sttEnabled){try{recognition?.stop();}catch(e){}}
-  else if(micEnabled&&sttEnabled){try{recognition?.start();}catch(e){}}
   updateCtrlMic(); showToast(micEnabled?T('micOn'):T('micOff'));
 }
 function ctrlCam(){
@@ -1870,14 +1797,154 @@ async function flipCamera(){
   }catch(e){showToast(T('camFlipFail'));}
 }
 function hangUp(){if(currentCall)currentCall.close();endCallCleanup();}
+
+// ── STT 자막 시스템 ──
+const STT_LANG_MAP={ko:'ko-KR',en:'en-US',ja:'ja-JP',zh:'zh-CN',es:'es-ES',fr:'fr-FR'};
+let sttOn=false, sttRec=null, sttFinal='';
+let sttRestartT=null, sttHideT=null, sttRemoteHideT=null;
+
+function sttInit(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    showToast('⚠️ 자막은 Chrome / Edge에서만 지원됩니다');
+    return false;
+  }
+  sttRec=new SR();
+  sttRec.continuous=true;
+  sttRec.interimResults=true;
+  sttRec.maxAlternatives=1;
+  sttRec.lang=STT_LANG_MAP[currentLang]||'ko-KR';
+
+  sttRec.onresult=(e)=>{
+    let interim='', finalNew='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const tx=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalNew+=tx;
+      else interim+=tx;
+    }
+    if(finalNew){
+      sttFinal+=finalNew;
+      if(sttFinal.length>150) sttFinal=sttFinal.slice(-120);
+    }
+    const display=(sttFinal+(interim?' '+interim:'')).trim();
+    if(!display) return;
+    sttShowLocal(display, !!interim);
+    sendData({type:'subtitle', text:display, interim:!!interim, name:myName||'나'});
+    clearTimeout(sttHideT);
+    sttHideT=setTimeout(()=>{
+      if(!interim){ sttFinal=''; sttHide('local'); }
+    }, 3000);
+  };
+
+  sttRec.onerror=(e)=>{
+    if(e.error==='not-allowed'){
+      showToast('🎤 마이크 권한이 필요합니다');
+      sttStop();
+    }
+  };
+
+  sttRec.onend=()=>{
+    if(sttOn){
+      clearTimeout(sttRestartT);
+      sttRestartT=setTimeout(()=>{
+        if(sttOn && sttRec){ try{sttRec.start();}catch(e){} }
+      }, 300);
+    }
+  };
+  return true;
+}
+
+function sttStart(){
+  if(!sttRec && !sttInit()) return;
+  sttRec.lang=STT_LANG_MAP[currentLang]||'ko-KR';
+  sttOn=true; sttFinal='';
+  try{ sttRec.start(); }catch(e){}
+}
+
+function sttStop(){
+  sttOn=false;
+  clearTimeout(sttRestartT);
+  clearTimeout(sttHideT);
+  if(sttRec){ try{sttRec.stop();}catch(e){} }
+  sttFinal='';
+  sttHide('local');
+}
+
+function toggleSubtitle(){
+  const btn=document.getElementById('btn-subtitle');
+  if(!sttOn){
+    sttStart();
+    btn.classList.add('on');
+    btn.innerHTML=`<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> 자막 ON`;
+    showToast('🎤 자막 켜짐 — 말씀하세요!');
+  } else {
+    sttStop();
+    btn.classList.remove('on');
+    btn.innerHTML=`<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> 자막`;
+    sttHide('remote');
+    showToast('자막 꺼짐');
+  }
+}
+
+// 내 자막 표시
+function sttShowLocal(text, isInterim){
+  const box=document.getElementById('subtitle-box');
+  const item=document.getElementById('sub-local');
+  const who=document.getElementById('sub-local-who');
+  const words=document.getElementById('sub-local-words');
+  if(!box||!item||!words) return;
+  who.textContent=myName||'나';
+  words.textContent=text;
+  words.className='sub-words'+(isInterim?' interim':'');
+  item.classList.add('show');
+  box.classList.add('on');
+}
+
+// 상대방 자막 수신
+function sttReceive(data){
+  if(!sttOn) return;
+  const box=document.getElementById('subtitle-box');
+  const item=document.getElementById('sub-remote');
+  const who=document.getElementById('sub-remote-who');
+  const words=document.getElementById('sub-remote-words');
+  if(!box||!item||!words) return;
+  who.textContent=data.name||'상대방';
+  words.textContent=data.text;
+  words.className='sub-words'+(data.interim?' interim':'');
+  item.classList.add('show');
+  box.classList.add('on');
+  clearTimeout(sttRemoteHideT);
+  sttRemoteHideT=setTimeout(()=>sttHide('remote'), 3500);
+}
+
+// 자막 숨기기
+function sttHide(who){
+  const item=document.getElementById('sub-'+who);
+  if(item) item.classList.remove('show');
+  // 둘 다 숨겨지면 박스도 숨김
+  const l=document.getElementById('sub-local');
+  const r=document.getElementById('sub-remote');
+  const box=document.getElementById('subtitle-box');
+  if(box && l && r &&
+     !l.classList.contains('show') &&
+     !r.classList.contains('show')){
+    box.classList.remove('on');
+  }
+}
+
 function endCallCleanup(){
   clearInterval(timerInterval);timerInterval=null;elapsed=0;
-  // 자막 정리
-  stopSTT();
-  clearTimeout(remoteSubHideTimer);
-  hideSubtitle('remote');
-  const btn=document.getElementById('btn-subtitle');
-  if(btn){btn.classList.remove('active');btn.textContent='자 막';}
+  // STT 정리
+  sttStop();
+  clearTimeout(sttRemoteHideT);
+  sttHide('remote'); sttHide('local');
+  const box=document.getElementById('subtitle-box');
+  if(box) box.classList.remove('on');
+  const subBtn=document.getElementById('btn-subtitle');
+  if(subBtn){
+    subBtn.classList.remove('on');
+    subBtn.innerHTML=`<svg class="ic" width="14" height="14" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M15 15h2M7 11h2M13 11h4"/></svg> 자막`;
+  }
   if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
   if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
   if(dataConn){dataConn.close();dataConn=null;}
