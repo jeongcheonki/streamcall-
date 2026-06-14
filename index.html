@@ -666,22 +666,31 @@ async function callPeer(){
 async function acceptCall(){
   document.getElementById('incoming-overlay').style.display='none';
   const stream=await getLocalStream();
-  currentCall=pendingCall; remotePeerId=pendingCall.peer;
-  const name=pendingCall.metadata?.name||pendingCall.peer;
+
+  // pendingCall을 로컬 변수에 저장 후 null 처리
+  const call=pendingCall;
+  pendingCall=null;
+
+  currentCall=call;
+  remotePeerId=call.peer;
+  const name=call.metadata?.name||call.peer;
   myName=document.getElementById('my-name').value||'이름없음';
   document.getElementById('peer-name-disp').textContent=name;
   document.getElementById('call-avatar').textContent=name.charAt(0).toUpperCase();
   document.getElementById('peer-vid-label').textContent=name;
   document.getElementById('call-status-txt').textContent=name+'와 연결 중...';
-  pendingCall.answer(stream);
-  enterCallScreen(stream);
-  pendingCall.on('stream',rs=>{
+
+  // 이벤트 먼저 등록 후 answer (스트림 이벤트 누락 방지)
+  call.on('stream',rs=>{
     document.getElementById('remote-vid').srcObject=rs;
     document.getElementById('remote-ph-call').style.display='none';
     showToast('✅ 연결되었습니다!'); startTimer();
   });
-  pendingCall.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
-  pendingCall=null;
+  call.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
+  call.on('error',e=>{showToast('오류: '+e.message);endCallCleanup();});
+
+  call.answer(stream);
+  enterCallScreen(stream);
 }
 function rejectCall(){
   document.getElementById('incoming-overlay').style.display='none';
