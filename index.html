@@ -73,7 +73,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .video-cell+.video-cell{border-left:3px solid #000;}
 .video-cell video{width:100%;height:100%;object-fit:cover;display:block;}
 #local-vid{transform:scaleX(-1);}
-.vid-label{position:absolute;bottom:136px;left:14px;background:rgba(0,0,0,.75);
+.vid-label{position:absolute;bottom:128px;left:14px;background:rgba(0,0,0,.75);
   border-radius:20px;padding:6px 16px;font-size:16px;color:#fff;font-weight:700;
   z-index:5;pointer-events:none;}
 .remote-placeholder-call{position:absolute;inset:0;display:flex;flex-direction:column;
@@ -95,60 +95,38 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .dot{width:9px;height:9px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* Controls — 2행 구조, 어떤 화면도 잘리지 않음 */
-.controls{
-  position:absolute;bottom:0;left:0;right:0;
-  background:rgba(15,15,30,.96);
-  backdrop-filter:blur(12px);
+/* Controls */
+.controls{position:absolute;bottom:0;left:0;right:0;
+  background:rgba(15,15,30,.96);backdrop-filter:blur(12px);
   border-top:2px solid rgba(255,255,255,.1);
-  display:flex;flex-direction:column;
-  align-items:center;gap:8px;
-  padding:10px 12px 12px;
-  z-index:30;
-}
-/* 1행: 주요 통화 버튼 */
-.ctrl-row1{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;}
-/* 2행: 기능 버튼 */
-.ctrl-row2{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;flex-wrap:wrap;}
-
-.ctrl-btn{
-  width:58px;height:58px;border-radius:50%;
-  border:2px solid rgba(255,255,255,.2);
-  background:rgba(255,255,255,.12);
+  padding:8px 10px 10px;display:flex;flex-direction:column;
+  align-items:center;gap:6px;z-index:30;}
+.ctrl-row1{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;}
+.ctrl-row2{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;flex-wrap:wrap;}
+.ctrl-btn{width:56px;height:56px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);
   color:#fff;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;transition:.15s;flex-shrink:0;
-}
+  gap:2px;transition:.15s;flex-shrink:0;}
 .ctrl-btn:hover{background:rgba(255,255,255,.25);}
 .ctrl-btn:active{transform:scale(.92);}
-.ctrl-btn .btn-lbl{font-size:10px;color:rgba(255,255,255,.75);font-weight:700;white-space:nowrap;}
+.ctrl-btn .btn-lbl{font-size:9px;color:rgba(255,255,255,.75);font-weight:700;white-space:nowrap;}
 .ctrl-btn.off{background:rgba(220,50,50,.3);border-color:rgba(220,50,50,.6);color:#fca5a5;}
 .ctrl-btn.off .btn-lbl{color:#fca5a5;}
 .ctrl-btn.active{background:rgba(37,99,235,.35);border-color:rgba(99,151,255,.6);color:#93c5fd;}
-.end-btn{
-  width:70px;height:70px;
-  background:#dc2626;border-color:transparent;
-  box-shadow:0 4px 18px rgba(220,38,38,.5);
-}
+.end-btn{width:68px;height:68px;background:#dc2626;border-color:transparent;
+  box-shadow:0 4px 18px rgba(220,38,38,.5);}
 .end-btn:hover{background:#b91c1c;}
-.end-btn .btn-lbl{color:#fff;font-size:11px;}
-
-.side-btn{
-  padding:9px 13px;border-radius:10px;
-  border:2px solid rgba(255,255,255,.2);
-  background:rgba(255,255,255,.08);
-  color:rgba(255,255,255,.85);
-  font-size:13px;font-weight:700;
-  cursor:pointer;display:flex;align-items:center;gap:5px;
-  transition:.15s;white-space:nowrap;
-}
+.end-btn .btn-lbl{color:#fff;font-size:10px;}
+.side-btn{padding:8px 12px;border-radius:10px;border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);
+  font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap;}
 .side-btn:hover{background:rgba(255,255,255,.18);}
 .side-btn.active{border-color:#60a5fa;color:#93c5fd;background:rgba(37,99,235,.25);}
 .quiz-start-btn{border-color:rgba(251,191,36,.5);color:#fbbf24;background:rgba(251,191,36,.1);}
 .quiz-start-btn:hover{background:rgba(251,191,36,.2);}
 .quiz-start-btn.active{background:rgba(251,191,36,.25);border-color:#fbbf24;}
-.unread-badge{background:var(--danger);color:#fff;border-radius:12px;
-  font-size:11px;padding:2px 6px;margin-left:3px;font-weight:700;}
 
 /* Side panel */
 .side-panel{width:0;background:#fff;border-left:2px solid var(--border);
@@ -208,7 +186,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .wb-canvas-wrap{flex:1;overflow:hidden;position:relative;}
 
 /* ── 퀴즈 오버레이 ── */
-#quiz-overlay{display:none;position:absolute;bottom:145px;left:50%;
+#quiz-overlay{display:none;position:absolute;bottom:128px;left:50%;
   transform:translateX(-50%);z-index:50;width:min(400px,52vw);user-select:none;}
 #quiz-overlay.show{display:block;}
 #quiz-overlay.dragging{cursor:grabbing;}
@@ -261,7 +239,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
   opacity:0;pointer-events:none;transition:opacity .2s;}
 .quiz-result-flash.show{opacity:1;}
 
-.quiz-notify{display:none;position:absolute;bottom:145px;left:50%;
+.quiz-notify{display:none;position:absolute;bottom:128px;left:50%;
   transform:translateX(-50%);z-index:50;width:min(260px,34vw);user-select:none;}
 .quiz-notify.show{display:block;}
 .quiz-notify.dragging{cursor:grabbing;}
@@ -313,17 +291,15 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 
 @media(max-width:600px){
   .side-panel.open{width:100%;position:absolute;inset:0;z-index:50;}
-  .ctrl-btn{width:50px;height:50px;}
+  .ctrl-btn{width:46px;height:46px;}
   .ctrl-btn svg{width:18px;height:18px;}
-  .ctrl-btn .btn-lbl{font-size:9px;}
-  .end-btn{width:60px;height:60px;}
-  .ctrl-row1{gap:7px;}
-  .ctrl-row2{gap:5px;}
-  .side-btn{padding:8px 10px;font-size:12px;}
-  .vid-label{bottom:148px;}
-  #quiz-overlay{width:min(340px,90vw);}
-  #quiz-overlay .quiz-img-wrap{height:110px;}
-  .quiz-notify{width:min(220px,80vw);}
+  .ctrl-btn .btn-lbl{font-size:8px;}
+  .end-btn{width:56px;height:56px;}
+  .ctrl-row1{gap:5px;}
+  .ctrl-row2{gap:4px;}
+  .side-btn{padding:7px 9px;font-size:12px;}
+  .vid-label{bottom:138px;}
+  .side-btn{padding:8px 10px;font-size:13px;}
 }
 </style>
 </head>
@@ -458,30 +434,28 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 
       <!-- Controls — 1행: 통화버튼 / 2행: 기능버튼 -->
       <div class="controls">
-        <!-- 1행 -->
         <div class="ctrl-row1">
           <button class="ctrl-btn" id="ctrl-mic" onclick="ctrlMic()">
-            <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
             <span class="btn-lbl">마이크</span>
           </button>
           <button class="ctrl-btn" id="ctrl-cam" onclick="ctrlCam()">
-            <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
             <span class="btn-lbl">카메라</span>
           </button>
           <button class="ctrl-btn end-btn" onclick="hangUp()">
-            <svg class="ic" width="26" height="26" viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.43 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.3 9.89"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+            <svg class="ic" width="24" height="24" viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.43 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.3 9.89"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
             <span class="btn-lbl">통화종료</span>
           </button>
           <button class="ctrl-btn" id="ctrl-share" onclick="ctrlShare()">
-            <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             <span class="btn-lbl">화면공유</span>
           </button>
           <button class="ctrl-btn" id="ctrl-flip" onclick="flipCamera()">
-            <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
             <span class="btn-lbl">전환</span>
           </button>
         </div>
-        <!-- 2행 -->
         <div class="ctrl-row2">
           <button class="side-btn" id="btn-chat" onclick="togglePanel('chat')">
             <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -1035,7 +1009,7 @@ function startQuiz(){
   document.getElementById('quiz-score').textContent=0;
   document.getElementById('btn-quiz').classList.add('active');
   const qo=document.getElementById('quiz-overlay');
-  qo.style.top='';qo.style.left='';qo.style.bottom='145px';qo.style.transform='translateX(-50%)';
+  qo.style.top='';qo.style.left='';qo.style.bottom='128px';qo.style.transform='translateX(-50%)';
   sendData({type:'quiz-start'});
   quizNextWord();
 }
