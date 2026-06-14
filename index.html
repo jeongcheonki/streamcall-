@@ -563,43 +563,8 @@ let myName='이름없음';
 // ── PeerJS ──
 function initPeer(){
   const id=String(Math.floor(1000+Math.random()*9000));
-
-  const iceServers=[
-    // STUN 서버 (여러 개)
-    {urls:'stun:stun.l.google.com:19302'},
-    {urls:'stun:stun1.l.google.com:19302'},
-    {urls:'stun:stun2.l.google.com:19302'},
-    {urls:'stun:stun3.l.google.com:19302'},
-    {urls:'stun:stun4.l.google.com:19302'},
-    {urls:'stun:global.stun.twilio.com:3478'},
-    // 무료 TURN 서버 (NAT/방화벽 우회 — 핵심!)
-    {
-      urls:'turn:openrelay.metered.ca:80',
-      username:'openrelayproject',
-      credential:'openrelayproject'
-    },
-    {
-      urls:'turn:openrelay.metered.ca:443',
-      username:'openrelayproject',
-      credential:'openrelayproject'
-    },
-    {
-      urls:'turn:openrelay.metered.ca:443?transport=tcp',
-      username:'openrelayproject',
-      credential:'openrelayproject'
-    },
-  ];
-
-  peer=new Peer(id,{
-    host:'0.peerjs.com',port:443,path:'/',secure:true,
-    debug:1,
-    config:{
-      iceServers,
-      iceTransportPolicy:'all',
-      sdpSemantics:'unified-plan',
-    }
-  });
-
+  peer=new Peer(id,{host:'0.peerjs.com',port:443,path:'/',secure:true,
+    config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
   peer.on('open',pid=>{
     document.getElementById('my-id-display').textContent=pid;
     setLobbyStatus('✅ 준비 완료 — 번호를 상대방에게 알려주세요','ok');
@@ -607,17 +572,8 @@ function initPeer(){
     document.getElementById('call-btn').disabled=false;
   });
   peer.on('error',err=>{
-    console.error('PeerJS 오류:', err);
-    if(err.type==='peer-unavailable'){
-      setLobbyStatus('상대방을 찾을 수 없습니다','error');
-      showToast('❌ 상대방이 접속해 있지 않습니다');
-    } else if(err.type==='network'||err.type==='server-error'||err.type==='socket-error'){
-      setLobbyStatus('서버 연결 오류 — 잠시 후 재연결 중...','error');
-      setTimeout(()=>{ try{ peer.reconnect(); }catch(e){ initPeer(); } }, 3000);
-    } else {
-      setLobbyStatus('오류: '+err.type,'error');
-      showToast('⚠️ 오류: '+err.type);
-    }
+    if(err.type==='peer-unavailable'){setLobbyStatus('상대방을 찾을 수 없습니다','error');showToast('❌ 상대방이 접속해 있지 않습니다');}
+    else setLobbyStatus('오류: '+err.message,'error');
   });
   peer.on('call',incoming=>{
     pendingCall=incoming;
@@ -627,10 +583,7 @@ function initPeer(){
     document.getElementById('incoming-overlay').style.display='flex';
   });
   peer.on('connection',conn=>setupDataConn(conn));
-  peer.on('disconnected',()=>{
-    console.log('PeerJS 연결 끊김, 재연결 시도...');
-    setTimeout(()=>{ try{ peer.reconnect(); }catch(e){} }, 1000);
-  });
+  peer.on('disconnected',()=>peer.reconnect());
 }
 
 function setupDataConn(conn){
@@ -692,49 +645,23 @@ async function callPeer(){
   setLobbyStatus('연결 중...','');
   const stream=await getLocalStream();
   myName=document.getElementById('my-name').value||'이름없음';
-
-  // 데이터 채널 연결
-  const conn=peer.connect(peerId,{metadata:{name:myName},reliable:true});
+  const conn=peer.connect(peerId,{metadata:{name:myName}});
   setupDataConn(conn);
-
-  // 영상통화 연결
   const call=peer.call(peerId,stream,{metadata:{name:myName}});
-  if(!call){setLobbyStatus('연결 실패 — 상대방 번호를 확인하세요','error');return;}
-
+  if(!call){setLobbyStatus('연결 실패','error');return;}
   currentCall=call; remotePeerId=peerId;
   document.getElementById('peer-name-disp').textContent=peerId;
   document.getElementById('call-avatar').textContent=peerId.charAt(0);
   document.getElementById('peer-vid-label').textContent=peerId;
   document.getElementById('call-status-txt').textContent='연결 중...';
-
-  // 이벤트 먼저 등록
+  enterCallScreen(stream);
   call.on('stream',rs=>{
-    console.log('스트림 수신 (발신)');
-    const rv=document.getElementById('remote-vid');
-    rv.srcObject=rs;
-    rv.play().catch(e=>console.warn('video play error:',e));
+    document.getElementById('remote-vid').srcObject=rs;
     document.getElementById('remote-ph-call').style.display='none';
     showToast('✅ 연결되었습니다!'); startTimer();
   });
   call.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
-  call.on('error',e=>{
-    console.error('call error:',e);
-    showToast('연결 오류: '+e.message);
-    endCallCleanup();
-  });
-  // ICE 연결 상태 모니터링
-  call.peerConnection?.addEventListener('iceconnectionstatechange',()=>{
-    const s=call.peerConnection?.iceConnectionState;
-    console.log('ICE 상태:', s);
-    if(s==='failed'){
-      showToast('⚠️ 연결 실패 — 네트워크를 확인하세요');
-    }
-    if(s==='connected'||s==='completed'){
-      document.getElementById('call-status-txt').textContent='연결됨';
-    }
-  });
-
-  enterCallScreen(stream);
+  call.on('error',e=>{showToast('오류: '+e.message);endCallCleanup();});
 }
 async function acceptCall(){
   document.getElementById('incoming-overlay').style.display='none';
@@ -755,26 +682,12 @@ async function acceptCall(){
 
   // 이벤트 먼저 등록 후 answer (스트림 이벤트 누락 방지)
   call.on('stream',rs=>{
-    console.log('스트림 수신 (수신)');
-    const rv=document.getElementById('remote-vid');
-    rv.srcObject=rs;
-    rv.play().catch(e=>console.warn('video play error:',e));
+    document.getElementById('remote-vid').srcObject=rs;
     document.getElementById('remote-ph-call').style.display='none';
     showToast('✅ 연결되었습니다!'); startTimer();
   });
   call.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
-  call.on('error',e=>{
-    console.error('call error:',e);
-    showToast('연결 오류: '+e.message);
-    endCallCleanup();
-  });
-  // ICE 연결 상태 모니터링
-  call.peerConnection?.addEventListener('iceconnectionstatechange',()=>{
-    const s=call.peerConnection?.iceConnectionState;
-    console.log('ICE 상태:', s);
-    if(s==='failed') showToast('⚠️ 연결 실패 — 네트워크를 확인하세요');
-    if(s==='connected'||s==='completed') document.getElementById('call-status-txt').textContent='연결됨';
-  });
+  call.on('error',e=>{showToast('오류: '+e.message);endCallCleanup();});
 
   call.answer(stream);
   enterCallScreen(stream);
