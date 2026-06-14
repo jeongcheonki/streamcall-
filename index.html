@@ -73,7 +73,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .video-cell+.video-cell{border-left:3px solid #000;}
 .video-cell video{width:100%;height:100%;object-fit:cover;display:block;}
 #local-vid{transform:scaleX(-1);}
-.vid-label{position:absolute;bottom:128px;left:14px;background:rgba(0,0,0,.75);
+.vid-label{position:absolute;bottom:92px;left:14px;background:rgba(0,0,0,.75);
   border-radius:20px;padding:6px 16px;font-size:16px;color:#fff;font-weight:700;
   z-index:5;pointer-events:none;}
 .remote-placeholder-call{position:absolute;inset:0;display:flex;flex-direction:column;
@@ -97,30 +97,32 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 
 /* Controls */
 .controls{position:absolute;bottom:0;left:0;right:0;
-  background:rgba(15,15,30,.96);backdrop-filter:blur(12px);
+  background:rgba(15,15,30,.95);backdrop-filter:blur(12px);
   border-top:2px solid rgba(255,255,255,.1);
-  padding:8px 10px 10px;display:flex;flex-direction:column;
-  align-items:center;gap:6px;z-index:30;}
-.ctrl-row1{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;}
-.ctrl-row2{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;flex-wrap:wrap;}
-.ctrl-btn{width:56px;height:56px;border-radius:50%;
+  padding:12px 18px;display:flex;align-items:center;
+  justify-content:space-between;gap:10px;z-index:30;}
+.ctrl-center{display:flex;gap:8px;align-items:center;}
+.ctrl-btn{width:62px;height:62px;border-radius:50%;
   border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);
   color:#fff;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;transition:.15s;flex-shrink:0;}
+  gap:3px;transition:.15s;flex-shrink:0;}
 .ctrl-btn:hover{background:rgba(255,255,255,.25);}
-.ctrl-btn:active{transform:scale(.92);}
-.ctrl-btn .btn-lbl{font-size:9px;color:rgba(255,255,255,.75);font-weight:700;white-space:nowrap;}
+.ctrl-btn:active{transform:scale(.93);}
+.ctrl-btn .btn-lbl{font-size:10px;color:rgba(255,255,255,.7);font-weight:700;}
 .ctrl-btn.off{background:rgba(220,50,50,.3);border-color:rgba(220,50,50,.6);color:#fca5a5;}
 .ctrl-btn.off .btn-lbl{color:#fca5a5;}
 .ctrl-btn.active{background:rgba(37,99,235,.35);border-color:rgba(99,151,255,.6);color:#93c5fd;}
-.end-btn{width:68px;height:68px;background:#dc2626;border-color:transparent;
-  box-shadow:0 4px 18px rgba(220,38,38,.5);}
+.end-btn{width:76px;height:76px;background:#dc2626;border-color:transparent;
+  box-shadow:0 4px 20px rgba(220,38,38,.5);}
 .end-btn:hover{background:#b91c1c;}
-.end-btn .btn-lbl{color:#fff;font-size:10px;}
-.side-btn{padding:8px 12px;border-radius:10px;border:2px solid rgba(255,255,255,.2);
-  background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);
-  font-size:13px;font-weight:700;cursor:pointer;
+.end-btn .btn-lbl{color:rgba(255,255,255,.9);}
+.peer-info .inlbl{font-size:13px;color:rgba(255,255,255,.5);}
+.peer-info strong{display:block;font-size:18px;color:#fff;font-weight:700;}
+.side-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.side-btn{padding:10px 14px;border-radius:10px;border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);
+  font-size:14px;font-weight:600;cursor:pointer;
   display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap;}
 .side-btn:hover{background:rgba(255,255,255,.18);}
 .side-btn.active{border-color:#60a5fa;color:#93c5fd;background:rgba(37,99,235,.25);}
@@ -186,7 +188,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .wb-canvas-wrap{flex:1;overflow:hidden;position:relative;}
 
 /* ── 퀴즈 오버레이 ── */
-#quiz-overlay{display:none;position:absolute;bottom:128px;left:50%;
+#quiz-overlay{display:none;position:absolute;bottom:90px;left:50%;
   transform:translateX(-50%);z-index:50;width:min(400px,52vw);user-select:none;}
 #quiz-overlay.show{display:block;}
 #quiz-overlay.dragging{cursor:grabbing;}
@@ -239,7 +241,7 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
   opacity:0;pointer-events:none;transition:opacity .2s;}
 .quiz-result-flash.show{opacity:1;}
 
-.quiz-notify{display:none;position:absolute;bottom:128px;left:50%;
+.quiz-notify{display:none;position:absolute;bottom:90px;left:50%;
   transform:translateX(-50%);z-index:50;width:min(260px,34vw);user-select:none;}
 .quiz-notify.show{display:block;}
 .quiz-notify.dragging{cursor:grabbing;}
@@ -291,14 +293,9 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 
 @media(max-width:600px){
   .side-panel.open{width:100%;position:absolute;inset:0;z-index:50;}
-  .ctrl-btn{width:46px;height:46px;}
-  .ctrl-btn svg{width:18px;height:18px;}
-  .ctrl-btn .btn-lbl{font-size:8px;}
-  .end-btn{width:56px;height:56px;}
-  .ctrl-row1{gap:5px;}
-  .ctrl-row2{gap:4px;}
-  .side-btn{padding:7px 9px;font-size:12px;}
-  .vid-label{bottom:138px;}
+  .ctrl-btn{width:52px;height:52px;}
+  .end-btn{width:64px;height:64px;}
+  .side-btns{gap:4px;}
   .side-btn{padding:8px 10px;font-size:13px;}
 }
 </style>
@@ -432,31 +429,35 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
         </div>
       </div>
 
-      <!-- Controls — 1행: 통화버튼 / 2행: 기능버튼 -->
+      <!-- Controls -->
       <div class="controls">
-        <div class="ctrl-row1">
+        <div class="peer-info">
+          <span class="inlbl">통화 중</span>
+          <strong id="peer-name-disp">상대방</strong>
+        </div>
+        <div class="ctrl-center">
           <button class="ctrl-btn" id="ctrl-mic" onclick="ctrlMic()">
-            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
             <span class="btn-lbl">마이크</span>
           </button>
           <button class="ctrl-btn" id="ctrl-cam" onclick="ctrlCam()">
-            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
             <span class="btn-lbl">카메라</span>
           </button>
           <button class="ctrl-btn end-btn" onclick="hangUp()">
-            <svg class="ic" width="24" height="24" viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.43 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.3 9.89"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+            <svg class="ic" width="26" height="26" viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.43 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.3 9.89"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
             <span class="btn-lbl">통화종료</span>
           </button>
           <button class="ctrl-btn" id="ctrl-share" onclick="ctrlShare()">
-            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             <span class="btn-lbl">화면공유</span>
           </button>
           <button class="ctrl-btn" id="ctrl-flip" onclick="flipCamera()">
-            <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+            <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
             <span class="btn-lbl">전환</span>
           </button>
         </div>
-        <div class="ctrl-row2">
+        <div class="side-btns">
           <button class="side-btn" id="btn-chat" onclick="togglePanel('chat')">
             <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             채팅<span class="unread-badge" id="unread-badge" style="display:none">0</span>
@@ -563,43 +564,8 @@ let myName='이름없음';
 // ── PeerJS ──
 function initPeer(){
   const id=String(Math.floor(1000+Math.random()*9000));
-
-  const iceServers=[
-    // STUN 서버 (여러 개)
-    {urls:'stun:stun.l.google.com:19302'},
-    {urls:'stun:stun1.l.google.com:19302'},
-    {urls:'stun:stun2.l.google.com:19302'},
-    {urls:'stun:stun3.l.google.com:19302'},
-    {urls:'stun:stun4.l.google.com:19302'},
-    {urls:'stun:global.stun.twilio.com:3478'},
-    // 무료 TURN 서버 (NAT/방화벽 우회 — 핵심!)
-    {
-      urls:'turn:openrelay.metered.ca:80',
-      username:'openrelayproject',
-      credential:'openrelayproject'
-    },
-    {
-      urls:'turn:openrelay.metered.ca:443',
-      username:'openrelayproject',
-      credential:'openrelayproject'
-    },
-    {
-      urls:'turn:openrelay.metered.ca:443?transport=tcp',
-      username:'openrelayproject',
-      credential:'openrelayproject'
-    },
-  ];
-
-  peer=new Peer(id,{
-    host:'0.peerjs.com',port:443,path:'/',secure:true,
-    debug:1,
-    config:{
-      iceServers,
-      iceTransportPolicy:'all',
-      sdpSemantics:'unified-plan',
-    }
-  });
-
+  peer=new Peer(id,{host:'0.peerjs.com',port:443,path:'/',secure:true,
+    config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
   peer.on('open',pid=>{
     document.getElementById('my-id-display').textContent=pid;
     setLobbyStatus('✅ 준비 완료 — 번호를 상대방에게 알려주세요','ok');
@@ -607,17 +573,8 @@ function initPeer(){
     document.getElementById('call-btn').disabled=false;
   });
   peer.on('error',err=>{
-    console.error('PeerJS 오류:', err);
-    if(err.type==='peer-unavailable'){
-      setLobbyStatus('상대방을 찾을 수 없습니다','error');
-      showToast('❌ 상대방이 접속해 있지 않습니다');
-    } else if(err.type==='network'||err.type==='server-error'||err.type==='socket-error'){
-      setLobbyStatus('서버 연결 오류 — 잠시 후 재연결 중...','error');
-      setTimeout(()=>{ try{ peer.reconnect(); }catch(e){ initPeer(); } }, 3000);
-    } else {
-      setLobbyStatus('오류: '+err.type,'error');
-      showToast('⚠️ 오류: '+err.type);
-    }
+    if(err.type==='peer-unavailable'){setLobbyStatus('상대방을 찾을 수 없습니다','error');showToast('❌ 상대방이 접속해 있지 않습니다');}
+    else setLobbyStatus('오류: '+err.message,'error');
   });
   peer.on('call',incoming=>{
     pendingCall=incoming;
@@ -627,10 +584,7 @@ function initPeer(){
     document.getElementById('incoming-overlay').style.display='flex';
   });
   peer.on('connection',conn=>setupDataConn(conn));
-  peer.on('disconnected',()=>{
-    console.log('PeerJS 연결 끊김, 재연결 시도...');
-    setTimeout(()=>{ try{ peer.reconnect(); }catch(e){} }, 1000);
-  });
+  peer.on('disconnected',()=>peer.reconnect());
 }
 
 function setupDataConn(conn){
@@ -692,92 +646,43 @@ async function callPeer(){
   setLobbyStatus('연결 중...','');
   const stream=await getLocalStream();
   myName=document.getElementById('my-name').value||'이름없음';
-
-  // 데이터 채널 연결
-  const conn=peer.connect(peerId,{metadata:{name:myName},reliable:true});
+  const conn=peer.connect(peerId,{metadata:{name:myName}});
   setupDataConn(conn);
-
-  // 영상통화 연결
   const call=peer.call(peerId,stream,{metadata:{name:myName}});
-  if(!call){setLobbyStatus('연결 실패 — 상대방 번호를 확인하세요','error');return;}
-
+  if(!call){setLobbyStatus('연결 실패','error');return;}
   currentCall=call; remotePeerId=peerId;
   document.getElementById('peer-name-disp').textContent=peerId;
   document.getElementById('call-avatar').textContent=peerId.charAt(0);
   document.getElementById('peer-vid-label').textContent=peerId;
   document.getElementById('call-status-txt').textContent='연결 중...';
-
-  // 이벤트 먼저 등록
+  enterCallScreen(stream);
   call.on('stream',rs=>{
-    console.log('스트림 수신 (발신)');
-    const rv=document.getElementById('remote-vid');
-    rv.srcObject=rs;
-    rv.play().catch(e=>console.warn('video play error:',e));
+    document.getElementById('remote-vid').srcObject=rs;
     document.getElementById('remote-ph-call').style.display='none';
     showToast('✅ 연결되었습니다!'); startTimer();
   });
   call.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
-  call.on('error',e=>{
-    console.error('call error:',e);
-    showToast('연결 오류: '+e.message);
-    endCallCleanup();
-  });
-  // ICE 연결 상태 모니터링
-  call.peerConnection?.addEventListener('iceconnectionstatechange',()=>{
-    const s=call.peerConnection?.iceConnectionState;
-    console.log('ICE 상태:', s);
-    if(s==='failed'){
-      showToast('⚠️ 연결 실패 — 네트워크를 확인하세요');
-    }
-    if(s==='connected'||s==='completed'){
-      document.getElementById('call-status-txt').textContent='연결됨';
-    }
-  });
-
-  enterCallScreen(stream);
+  call.on('error',e=>{showToast('오류: '+e.message);endCallCleanup();});
 }
 async function acceptCall(){
   document.getElementById('incoming-overlay').style.display='none';
   const stream=await getLocalStream();
-
-  // pendingCall을 로컬 변수에 저장 후 null 처리
-  const call=pendingCall;
-  pendingCall=null;
-
-  currentCall=call;
-  remotePeerId=call.peer;
-  const name=call.metadata?.name||call.peer;
+  currentCall=pendingCall; remotePeerId=pendingCall.peer;
+  const name=pendingCall.metadata?.name||pendingCall.peer;
   myName=document.getElementById('my-name').value||'이름없음';
   document.getElementById('peer-name-disp').textContent=name;
   document.getElementById('call-avatar').textContent=name.charAt(0).toUpperCase();
   document.getElementById('peer-vid-label').textContent=name;
   document.getElementById('call-status-txt').textContent=name+'와 연결 중...';
-
-  // 이벤트 먼저 등록 후 answer (스트림 이벤트 누락 방지)
-  call.on('stream',rs=>{
-    console.log('스트림 수신 (수신)');
-    const rv=document.getElementById('remote-vid');
-    rv.srcObject=rs;
-    rv.play().catch(e=>console.warn('video play error:',e));
+  pendingCall.answer(stream);
+  enterCallScreen(stream);
+  pendingCall.on('stream',rs=>{
+    document.getElementById('remote-vid').srcObject=rs;
     document.getElementById('remote-ph-call').style.display='none';
     showToast('✅ 연결되었습니다!'); startTimer();
   });
-  call.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
-  call.on('error',e=>{
-    console.error('call error:',e);
-    showToast('연결 오류: '+e.message);
-    endCallCleanup();
-  });
-  // ICE 연결 상태 모니터링
-  call.peerConnection?.addEventListener('iceconnectionstatechange',()=>{
-    const s=call.peerConnection?.iceConnectionState;
-    console.log('ICE 상태:', s);
-    if(s==='failed') showToast('⚠️ 연결 실패 — 네트워크를 확인하세요');
-    if(s==='connected'||s==='completed') document.getElementById('call-status-txt').textContent='연결됨';
-  });
-
-  call.answer(stream);
-  enterCallScreen(stream);
+  pendingCall.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
+  pendingCall=null;
 }
 function rejectCall(){
   document.getElementById('incoming-overlay').style.display='none';
@@ -1105,7 +1010,7 @@ function startQuiz(){
   document.getElementById('quiz-score').textContent=0;
   document.getElementById('btn-quiz').classList.add('active');
   const qo=document.getElementById('quiz-overlay');
-  qo.style.top='';qo.style.left='';qo.style.bottom='128px';qo.style.transform='translateX(-50%)';
+  qo.style.top='';qo.style.left='';qo.style.bottom='90px';qo.style.transform='translateX(-50%)';
   sendData({type:'quiz-start'});
   quizNextWord();
 }
