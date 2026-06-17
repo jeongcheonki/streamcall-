@@ -60,6 +60,27 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .copy-btn{background:var(--accent);border:none;border-radius:10px;color:#fff;
   padding:10px 20px;font-size:16px;font-weight:700;cursor:pointer;transition:.15s;}
 .copy-btn:hover{background:var(--accent2);}
+
+/* 이름 + 통화번호 한 줄 배치 */
+.name-id-row{display:flex;align-items:stretch;gap:12px;}
+.name-id-row .name-wrap{flex:1;display:flex;flex-direction:column;gap:6px;}
+.name-id-row .name-wrap label{font-size:17px;color:var(--text2);font-weight:600;margin-bottom:0;}
+.name-id-row .name-wrap input{width:100%;background:var(--bg3);border:2px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:20px;padding:14px 18px;
+  outline:none;transition:border-color .2s;}
+.name-id-row .name-wrap input:focus{border-color:var(--accent);background:#fff;}
+.name-id-row .id-inline{
+  flex-shrink:0;min-width:160px;
+  background:var(--bg3);border:2px solid var(--border);border-radius:12px;
+  padding:12px 16px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;
+}
+.name-id-row .id-inline .id-label{font-size:13px;color:var(--text2);margin-bottom:0;font-weight:600;text-align:center;}
+.name-id-row .id-inline .id-value{font-size:24px;font-weight:800;font-family:monospace;
+  letter-spacing:3px;color:var(--accent);}
+.name-id-row .id-inline .copy-btn{
+  margin-top:4px;padding:6px 14px;font-size:13px;width:100%;text-align:center;
+}
 .status-msg{font-size:17px;color:var(--text2);text-align:center;min-height:22px;font-weight:500;}
 .status-msg.error{color:var(--danger);font-weight:700;}
 .status-msg.ok{color:var(--green);font-weight:700;}
@@ -315,9 +336,17 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
     </div>
 
     <div class="card">
-      <div>
-        <label>📛 내 이름</label>
-        <input type="text" id="my-name" placeholder="이름을 입력하세요" autocomplete="off"/>
+      <!-- 이름 + 통화번호 한 줄 -->
+      <div class="name-id-row">
+        <div class="name-wrap">
+          <label>📛 내 이름</label>
+          <input type="text" id="my-name" placeholder="이름을 입력하세요" autocomplete="off"/>
+        </div>
+        <div class="id-inline">
+          <div class="id-label">📋 내 번호</div>
+          <div class="id-value" id="my-id-display">----</div>
+          <button class="copy-btn" onclick="copyId()">복사</button>
+        </div>
       </div>
       <div>
         <label>📷 카메라 미리보기</label>
@@ -341,15 +370,6 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
       </div>
       <p class="status-msg" id="lobby-status">준비 중...</p>
       <button class="btn-primary" id="ready-btn" onclick="goReady()" disabled>📞 입장하기</button>
-    </div>
-
-    <div class="divider">📋 내 통화 번호 — 상대방에게 알려주세요</div>
-    <div class="id-box">
-      <div>
-        <div class="id-label">내 통화 번호</div>
-        <div class="id-value" id="my-id-display">----</div>
-      </div>
-      <button class="copy-btn" onclick="copyId()">📋 복사</button>
     </div>
 
     <div class="card">
