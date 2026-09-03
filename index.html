@@ -1,999 +1,1175 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>우리집 냉장고</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>화상통화 — 어르신용</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --bg:#F5F7F1;
-  --surface:#FFFFFF;
-  --primary:#2F5D4E;
-  --primary-dark:#1F4438;
-  --primary-soft:#E4EEE8;
-  --accent:#E39A3D;
-  --accent-soft:#FBEAD0;
-  --danger:#C4573F;
-  --danger-soft:#F7E1DA;
-  --text:#1E2A24;
-  --text-soft:#5E6E65;
-  --border:#DEE5DA;
-  --radius:20px;
+  --bg:#f0f4ff;--bg2:#ffffff;--bg3:#e8eeff;
+  --border:#c5d0f0;--text:#1a1f3a;--text2:#4a5280;--text3:#8890b8;
+  --accent:#2563eb;--accent2:#1d4ed8;
+  --danger:#dc2626;--green:#16a34a;--radius:16px;
+  --shadow:0 4px 20px rgba(37,99,235,.12);
 }
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",Pretendard,sans-serif;
-  font-size:18px;
-  line-height:1.5;
-  -webkit-tap-highlight-color:transparent;
-}
-#app{
-  max-width:520px;
-  margin:0 auto;
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  background:var(--bg);
-  position:relative;
-}
-header{
-  padding:28px 22px 18px;
-  background:var(--primary);
-  color:#fff;
-  border-bottom-left-radius:28px;
-  border-bottom-right-radius:28px;
-  box-shadow:0 6px 18px rgba(31,68,56,0.18);
-}
-header .eyebrow{
-  font-size:14px;
-  letter-spacing:0.14em;
-  text-transform:uppercase;
-  color:#BFE0D2;
-  font-weight:700;
-  margin-bottom:6px;
-}
-header h1{
-  margin:0;
-  font-size:28px;
-  font-weight:800;
-  letter-spacing:-0.01em;
-}
-header p{
-  margin:8px 0 0;
-  color:#DCEDE4;
-  font-size:15px;
-}
-main{
-  flex:1;
-  padding:20px 18px 110px;
-}
-.view{display:none;}
-.view.active{display:block;}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:'Noto Sans KR',-apple-system,'맑은 고딕',sans-serif;
+  font-size:18px;line-height:1.6;}
+svg.ic{display:inline-block;vertical-align:middle;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
 
-/* ---- summary banner ---- */
-.summary-row{
-  display:flex;
-  gap:12px;
-  margin-bottom:18px;
-}
-.summary-card{
-  flex:1;
-  background:var(--surface);
-  border-radius:16px;
-  padding:14px 16px;
-  border:1px solid var(--border);
-  text-align:center;
-}
-.summary-card .num{font-size:26px;font-weight:800;color:var(--primary-dark);}
-.summary-card .lbl{font-size:13px;color:var(--text-soft);font-weight:600;margin-top:2px;}
-.summary-card.warn .num{color:var(--danger);}
+/* ── LOBBY ── */
+#lobby{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.lobby-wrap{width:100%;max-width:500px;display:flex;flex-direction:column;gap:1.6rem;}
+.logo{display:flex;align-items:center;gap:14px;justify-content:center;}
+.logo-icon{width:56px;height:56px;border-radius:16px;background:var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  box-shadow:0 4px 16px rgba(37,99,235,.3);}
+.logo-text{font-size:28px;font-weight:800;color:var(--accent);}
+.card{background:var(--bg2);border:2px solid var(--border);border-radius:var(--radius);
+  padding:1.8rem;display:flex;flex-direction:column;gap:1.2rem;box-shadow:var(--shadow);}
+label{font-size:17px;color:var(--text2);display:block;margin-bottom:8px;font-weight:600;}
+input[type=text]{width:100%;background:var(--bg3);border:2px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:20px;padding:14px 18px;
+  outline:none;transition:border-color .2s;}
+input[type=text]:focus{border-color:var(--accent);background:#fff;}
+.preview-box{width:100%;aspect-ratio:16/9;background:#1a1a2e;border-radius:12px;
+  overflow:hidden;position:relative;border:2px solid var(--border);}
+.preview-box video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block;}
+.preview-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;color:rgba(255,255,255,.4);font-size:16px;}
+.preview-placeholder svg{width:48px;opacity:.4;}
+.btn-row{display:flex;gap:12px;}
+.btn-toggle{flex:1;padding:16px 12px;border-radius:12px;border:2.5px solid var(--border);
+  background:var(--bg3);color:var(--text2);font-size:17px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;}
+.btn-toggle:hover{border-color:var(--accent);color:var(--accent);}
+.btn-toggle.on{border-color:var(--accent);color:var(--accent);background:#dbeafe;font-weight:700;}
+.btn-primary{width:100%;padding:18px;border-radius:14px;border:none;
+  background:var(--accent);color:#fff;font-size:20px;font-weight:700;
+  cursor:pointer;transition:.2s;box-shadow:0 4px 14px rgba(37,99,235,.35);}
+.btn-primary:hover{background:var(--accent2);}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.divider{display:flex;align-items:center;gap:12px;color:var(--text3);font-size:15px;font-weight:600;}
+.divider::before,.divider::after{content:'';flex:1;height:1.5px;background:var(--border);}
+.id-box{background:var(--bg3);border:2px solid var(--border);border-radius:12px;
+  padding:16px 20px;display:flex;align-items:center;justify-content:space-between;}
+.id-label{font-size:15px;color:var(--text2);margin-bottom:4px;font-weight:600;}
+.id-value{font-size:30px;font-weight:800;font-family:monospace;letter-spacing:4px;color:var(--accent);}
+.copy-btn{background:var(--accent);border:none;border-radius:10px;color:#fff;
+  padding:10px 20px;font-size:16px;font-weight:700;cursor:pointer;transition:.15s;}
+.copy-btn:hover{background:var(--accent2);}
+.status-msg{font-size:17px;color:var(--text2);text-align:center;min-height:22px;font-weight:500;}
+.status-msg.error{color:var(--danger);font-weight:700;}
+.status-msg.ok{color:var(--green);font-weight:700;}
 
-.alert-banner{
-  background:var(--danger-soft);
-  border:1px solid #E7C3B6;
-  color:#7A3524;
-  border-radius:16px;
-  padding:12px 16px;
-  font-size:15px;
-  font-weight:600;
-  margin-bottom:16px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
+/* ── CALL SCREEN ── */
+#call-screen{display:none;height:100vh;overflow:hidden;background:#000;}
+.call-layout{display:flex;height:100%;position:relative;}
+.video-stage{flex:1;position:relative;background:#000;overflow:hidden;}
+.video-grid{display:flex;width:100%;height:100%;}
+.video-cell{flex:1;position:relative;background:#1a1a2e;overflow:hidden;}
+.video-cell+.video-cell{border-left:3px solid #000;}
+.video-cell video{width:100%;height:100%;object-fit:cover;display:block;}
+#local-vid{transform:scaleX(-1);}
+.vid-label{position:absolute;bottom:140px;left:14px;background:rgba(0,0,0,.75);
+  border-radius:20px;padding:6px 16px;font-size:16px;color:#fff;font-weight:700;
+  z-index:5;pointer-events:none;}
+.remote-placeholder-call{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;color:rgba(255,255,255,.35);}
+.remote-avatar{width:110px;height:110px;border-radius:50%;background:rgba(37,99,235,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;font-weight:700;color:rgba(255,255,255,.6);
+  border:3px solid rgba(37,99,235,.3);}
+.remote-placeholder-call p{font-size:18px;}
+.pip-cam-off{position:absolute;inset:0;background:#1a1a2e;display:none;
+  align-items:center;justify-content:center;flex-direction:column;
+  gap:8px;color:rgba(255,255,255,.35);font-size:15px;}
+.pip-cam-off svg{width:32px;opacity:.4;}
 
-/* ---- item card, styled like a peeling label sticker ---- */
-.item-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:18px 18px 16px;
-  margin-bottom:14px;
-  position:relative;
-  overflow:hidden;
-}
-.item-card::before{
-  content:"";
-  position:absolute;
-  top:-14px; left:-14px;
-  width:34px; height:34px;
-  background:var(--bg);
-  border-radius:50%;
-  box-shadow:0 0 0 1px var(--border);
-}
-.item-card.expiring{border-color:#E3B98A; background:linear-gradient(180deg,#FFF9F0,var(--surface) 40%);}
-.item-card.expired{border-color:#E0AFA0; background:linear-gradient(180deg,#FDEFEA,var(--surface) 40%);}
-.item-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
-.item-name-row{display:flex; align-items:center; gap:10px;}
-.cat-dot{
-  width:14px;height:14px;border-radius:50%;flex-shrink:0;
-}
-.item-name{font-size:20px;font-weight:800;}
-.item-meta{color:var(--text-soft); font-size:14px; margin-top:6px;}
-.item-tag{
-  display:inline-block;
-  font-size:12.5px;
-  font-weight:700;
-  padding:3px 9px;
-  border-radius:999px;
-  background:var(--primary-soft);
-  color:var(--primary-dark);
-  margin-top:8px;
-  margin-right:6px;
-}
-.item-tag.warn{background:var(--accent-soft); color:#8A5A14;}
-.item-tag.danger{background:var(--danger-soft); color:#8A3521;}
-.item-actions{display:flex; gap:8px; margin-top:14px;}
-.item-actions button{flex:1;}
+/* HUD */
+.hud-top{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:10px;z-index:10;}
+.badge{background:rgba(0,0,0,.7);border-radius:20px;padding:8px 16px;
+  display:flex;align-items:center;gap:8px;color:#fff;font-size:16px;font-weight:600;}
+.dot{width:9px;height:9px;border-radius:50%;background:#22c55e;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ---- buttons ---- */
-button{font-family:inherit;}
-.btn{
-  border:none;
-  border-radius:14px;
-  padding:14px 16px;
-  font-size:16px;
-  font-weight:700;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  transition:transform .08s ease, opacity .15s ease;
-}
-.btn:active{transform:scale(0.97);}
-.btn-primary{background:var(--primary); color:#fff;}
-.btn-accent{background:var(--accent); color:#3B2508;}
-.btn-outline{background:var(--surface); color:var(--primary-dark); border:2px solid var(--primary-soft);}
-.btn-danger-outline{background:var(--surface); color:var(--danger); border:2px solid var(--danger-soft);}
-.btn-full{width:100%;}
-.btn-lg{padding:20px; font-size:18px; border-radius:18px;}
-.btn:disabled{opacity:0.5; cursor:not-allowed;}
+/* Controls */
+.controls{position:absolute;bottom:0;left:0;right:0;
+  background:rgba(15,15,30,.95);backdrop-filter:blur(12px);
+  border-top:2px solid rgba(255,255,255,.1);
+  padding:10px 12px 12px;display:flex;flex-direction:column;
+  align-items:center;gap:8px;z-index:30;}
+.ctrl-top{display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;}
+.ctrl-center{display:flex;gap:8px;align-items:center;}
+.ctrl-btn{width:62px;height:62px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.12);
+  color:#fff;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;transition:.15s;flex-shrink:0;}
+.ctrl-btn:hover{background:rgba(255,255,255,.25);}
+.ctrl-btn:active{transform:scale(.93);}
+.ctrl-btn .btn-lbl{font-size:10px;color:rgba(255,255,255,.7);font-weight:700;}
+.ctrl-btn.off{background:rgba(220,50,50,.3);border-color:rgba(220,50,50,.6);color:#fca5a5;}
+.ctrl-btn.off .btn-lbl{color:#fca5a5;}
+.ctrl-btn.active{background:rgba(37,99,235,.35);border-color:rgba(99,151,255,.6);color:#93c5fd;}
+.end-btn{width:76px;height:76px;background:#dc2626;border-color:transparent;
+  box-shadow:0 4px 20px rgba(220,38,38,.5);}
+.end-btn:hover{background:#b91c1c;}
+.end-btn .btn-lbl{color:rgba(255,255,255,.9);}
+.peer-info .inlbl{font-size:13px;color:rgba(255,255,255,.5);}
+.peer-info strong{display:block;font-size:18px;color:#fff;font-weight:700;}
+/* 3개 버튼 — 중앙 맨 아래 */
+.side-btns{display:flex;gap:10px;justify-content:center;align-items:center;width:100%;}
+.side-btn{padding:10px 18px;border-radius:10px;border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);
+  font-size:14px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap;}
+.side-btn:hover{background:rgba(255,255,255,.18);}
+.side-btn.active{border-color:#60a5fa;color:#93c5fd;background:rgba(37,99,235,.25);}
+.quiz-start-btn{border-color:rgba(251,191,36,.5);color:#fbbf24;background:rgba(251,191,36,.1);}
+.quiz-start-btn:hover{background:rgba(251,191,36,.2);}
+.quiz-start-btn.active{background:rgba(251,191,36,.25);border-color:#fbbf24;}
 
-/* ---- empty state ---- */
-.empty-state{
-  text-align:center;
-  padding:50px 20px;
-  color:var(--text-soft);
-}
-.empty-state .big-emoji{font-size:52px; margin-bottom:10px;}
-.empty-state h3{color:var(--text); font-size:19px; margin:0 0 6px;}
+/* Side panel */
+.side-panel{width:0;background:#fff;border-left:2px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;transition:width .25s;flex-shrink:0;}
+.side-panel.open{width:340px;}
+.panel-tabs{display:flex;border-bottom:2px solid var(--border);flex-shrink:0;background:var(--bg3);}
+.tab-btn{flex:1;padding:16px 8px;background:none;border:none;
+  color:var(--text2);font-size:16px;font-weight:600;cursor:pointer;
+  border-bottom:3px solid transparent;transition:.15s;
+  display:flex;align-items:center;justify-content:center;gap:6px;}
+.tab-btn:hover{color:var(--accent);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);background:#fff;}
+.panel-close{padding:12px 16px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;}
+.panel-close:hover{color:var(--danger);}
+.chat-pane,.wb-pane{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.chat-pane.active,.wb-pane.active{display:flex;}
+.chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#f8faff;}
+.chat-messages::-webkit-scrollbar{width:5px;}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.msg-row{display:flex;flex-direction:column;gap:3px;}
+.msg-row.me{align-items:flex-end;}
+.msg-row.them{align-items:flex-start;}
+.msg-name{font-size:13px;color:var(--text3);padding:0 6px;font-weight:600;}
+.msg-bubble{max-width:85%;padding:12px 16px;border-radius:14px;
+  font-size:18px;line-height:1.6;word-break:break-word;}
+.msg-row.me .msg-bubble{background:var(--accent);color:#fff;border-bottom-right-radius:4px;}
+.msg-row.them .msg-bubble{background:#fff;color:var(--text);
+  border:1.5px solid var(--border);border-bottom-left-radius:4px;}
+.msg-time{font-size:12px;color:var(--text3);padding:0 6px;}
+.msg-system{text-align:center;font-size:14px;color:var(--text3);padding:6px 0;font-weight:500;}
+.chat-input-area{padding:12px;border-top:2px solid var(--border);
+  display:flex;gap:10px;align-items:flex-end;background:#fff;}
+.chat-input-area textarea{flex:1;background:var(--bg3);border:2px solid var(--border);
+  border-radius:12px;color:var(--text);font-size:18px;
+  padding:12px 14px;resize:none;outline:none;max-height:120px;
+  font-family:inherit;line-height:1.5;}
+.chat-input-area textarea:focus{border-color:var(--accent);background:#fff;}
+.send-btn{width:52px;height:52px;border-radius:50%;border:none;background:var(--accent);
+  color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;box-shadow:0 3px 10px rgba(37,99,235,.3);}
+.send-btn:hover{background:var(--accent2);}
+.unread-badge{background:var(--danger);color:#fff;border-radius:12px;
+  font-size:12px;padding:2px 7px;margin-left:4px;font-weight:700;}
+.wb-pane{position:relative;}
+.wb-toolbar{padding:10px 12px;border-bottom:2px solid var(--border);
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0;background:var(--bg3);}
+.wb-tool-btn{padding:8px 12px;border-radius:8px;border:2px solid var(--border);
+  background:#fff;color:var(--text2);font-size:14px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:4px;transition:.15s;}
+.wb-tool-btn:hover{border-color:var(--accent);color:var(--accent);}
+.wb-tool-btn.active{border-color:var(--accent);color:var(--accent);background:#dbeafe;}
+.wb-color-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;
+  border:3px solid transparent;transition:.1s;flex-shrink:0;}
+.wb-color-swatch.selected{border-color:var(--accent);}
+.wb-size-row{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);font-weight:600;}
+#wb-canvas{flex:1;background:#1a1a2e;cursor:crosshair;display:block;width:100%;}
+.wb-canvas-wrap{flex:1;overflow:hidden;position:relative;}
 
-/* ---- forms ---- */
-.field{margin-bottom:16px;}
-.field label{
-  display:block;
-  font-size:14.5px;
-  font-weight:700;
-  color:var(--text-soft);
-  margin-bottom:6px;
-}
-.field input[type=text],
-.field input[type=number],
-.field input[type=date],
-.field textarea,
-.field select{
-  width:100%;
-  border:2px solid var(--border);
-  border-radius:12px;
-  padding:13px 14px;
-  font-size:17px;
-  font-family:inherit;
-  color:var(--text);
-  background:#fff;
-}
-.field textarea{resize:vertical; min-height:70px;}
-.cat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
-.cat-choice{
-  border:2px solid var(--border);
-  border-radius:12px;
-  padding:10px 4px;
-  text-align:center;
-  font-size:13px;
-  font-weight:700;
-  color:var(--text-soft);
-  cursor:pointer;
-  background:#fff;
-}
-.cat-choice .em{font-size:22px; display:block; margin-bottom:2px;}
-.cat-choice.selected{border-color:var(--primary); background:var(--primary-soft); color:var(--primary-dark);}
+/* ── 퀴즈 오버레이 ── */
+#quiz-overlay{display:none;position:absolute;bottom:140px;left:50%;
+  transform:translateX(-50%);z-index:50;width:min(400px,52vw);user-select:none;}
+#quiz-overlay.show{display:block;}
+#quiz-overlay.dragging{cursor:grabbing;}
+.quiz-card{background:rgba(10,10,20,.93);backdrop-filter:blur(18px);
+  border:2px solid rgba(251,191,36,.5);border-radius:22px;
+  padding:1.6rem;display:flex;flex-direction:column;align-items:center;gap:12px;
+  box-shadow:0 8px 40px rgba(0,0,0,.7);}
+.quiz-header{display:flex;align-items:center;justify-content:space-between;
+  width:100%;gap:8px;cursor:grab;}
+.quiz-header:active{cursor:grabbing;}
+.quiz-title{font-size:14px;color:rgba(251,191,36,.85);font-weight:800;letter-spacing:.5px;}
+.quiz-score-badge{font-size:14px;color:rgba(255,255,255,.6);
+  background:rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;}
+.quiz-word{font-size:clamp(28px,5vw,42px);font-weight:800;color:#fff;
+  text-align:center;text-shadow:0 2px 14px rgba(251,191,36,.35);}
+.quiz-hint{font-size:14px;color:rgba(255,255,255,.4);text-align:center;}
 
-/* ---- card container (section wrapper) ---- */
-.panel{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:20px;
-  margin-bottom:16px;
-}
-.panel h2{margin:0 0 4px; font-size:20px; font-weight:800;}
-.panel .sub{color:var(--text-soft); font-size:14.5px; margin:0 0 16px;}
+/* 퀴즈 그림 */
+.quiz-img-wrap{width:100%;height:140px;border-radius:14px;overflow:hidden;
+  background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.quiz-img-wrap svg{width:100%;height:100%;}
+.quiz-img-loading{display:flex;flex-direction:column;align-items:center;
+  gap:8px;color:rgba(255,255,255,.3);font-size:13px;}
+.quiz-img-spinner{width:30px;height:30px;border:3px solid rgba(255,255,255,.1);
+  border-top-color:#fbbf24;border-radius:50%;animation:qspin .75s linear infinite;}
+@keyframes qspin{to{transform:rotate(360deg);}}
 
-/* ---- QR generate view ---- */
-.qr-wrap{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  padding:22px 10px;
-}
-#qrCanvasHolder{
-  background:#fff;
-  padding:16px;
-  border-radius:16px;
-  border:2px dashed var(--primary-soft);
-}
-.qr-id-text{
-  font-family:"Courier New",monospace;
-  font-size:15px;
-  font-weight:700;
-  letter-spacing:0.03em;
-  background:var(--primary-soft);
-  color:var(--primary-dark);
-  padding:8px 14px;
-  border-radius:10px;
-  margin-top:14px;
-  word-break:break-all;
-  text-align:center;
-}
+.quiz-timer-wrap{position:relative;width:70px;height:70px;flex-shrink:0;}
+.quiz-timer-svg{transform:rotate(-90deg);}
+.quiz-timer-bg{fill:none;stroke:rgba(255,255,255,.1);stroke-width:5;}
+.quiz-timer-ring{fill:none;stroke:#fbbf24;stroke-width:5;stroke-linecap:round;
+  stroke-dasharray:163;stroke-dashoffset:0;transition:stroke-dashoffset .9s linear,stroke .5s;}
+.quiz-timer-ring.urgent{stroke:#ef4444;}
+.quiz-timer-num{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:22px;font-weight:800;color:#fff;
+  font-variant-numeric:tabular-nums;}
+.quiz-actions{display:flex;gap:10px;width:100%;}
+.quiz-btn{flex:1;padding:13px 8px;border-radius:12px;border:none;
+  font-size:15px;font-weight:700;cursor:pointer;transition:.15s;}
+.quiz-btn.correct{background:rgba(22,163,74,.25);color:#4ade80;border:2px solid rgba(22,163,74,.4);}
+.quiz-btn.correct:hover{background:rgba(22,163,74,.4);}
+.quiz-btn.skip{background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);
+  border:2px solid rgba(255,255,255,.15);}
+.quiz-btn.skip:hover{background:rgba(255,255,255,.2);}
+.quiz-btn.stop{background:rgba(220,38,38,.2);color:#f87171;border:2px solid rgba(220,38,38,.35);}
+.quiz-btn.stop:hover{background:rgba(220,38,38,.35);}
+.quiz-result-flash{position:absolute;inset:0;border-radius:22px;display:flex;
+  align-items:center;justify-content:center;font-size:56px;
+  opacity:0;pointer-events:none;transition:opacity .2s;}
+.quiz-result-flash.show{opacity:1;}
 
-/* ---- scan view ---- */
-.scan-video-wrap{
-  position:relative;
-  width:100%;
-  border-radius:18px;
-  overflow:hidden;
-  background:#0F1A15;
-  aspect-ratio:1/1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.scan-video-wrap video{width:100%; height:100%; object-fit:cover;}
-.scan-frame{
-  position:absolute; inset:14%;
-  border:3px solid var(--accent);
-  border-radius:16px;
-  pointer-events:none;
-  box-shadow:0 0 0 999px rgba(0,0,0,0.28);
-}
-.scan-status{color:#EAF3EE; font-size:15px; text-align:center; padding:0 20px;}
-.divider-or{
-  display:flex; align-items:center; gap:10px;
-  color:var(--text-soft); font-size:13px; font-weight:700;
-  margin:18px 0;
-}
-.divider-or::before,.divider-or::after{content:""; flex:1; height:1px; background:var(--border);}
+.quiz-notify{display:none;position:absolute;bottom:140px;left:50%;
+  transform:translateX(-50%);z-index:50;width:min(260px,34vw);user-select:none;}
+.quiz-notify.show{display:block;}
+.quiz-notify.dragging{cursor:grabbing;}
+.quiz-notify-card{background:rgba(10,10,20,.9);backdrop-filter:blur(12px);
+  border:2px solid rgba(251,191,36,.35);border-radius:16px;
+  padding:16px 20px;text-align:center;cursor:grab;}
+.quiz-notify-card:active{cursor:grabbing;}
+.quiz-notify-card p{font-size:16px;color:rgba(255,255,255,.65);margin-bottom:8px;}
+.quiz-notify-card strong{font-size:18px;color:#fbbf24;}
+.quiz-notify-timer{font-size:38px;font-weight:800;color:#fff;margin-top:8px;
+  font-variant-numeric:tabular-nums;}
 
-/* ---- toast ---- */
-#toast{
-  position:fixed;
-  bottom:96px; left:50%;
-  transform:translateX(-50%) translateY(20px);
-  background:var(--primary-dark);
-  color:#fff;
-  padding:13px 20px;
-  border-radius:14px;
-  font-size:15px;
-  font-weight:600;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity .25s ease, transform .25s ease;
-  z-index:50;
-  max-width:90%;
-  text-align:center;
-  box-shadow:0 8px 20px rgba(0,0,0,0.2);
-}
-#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+/* Toast */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:#1e293b;border-radius:12px;padding:14px 24px;
+  color:#fff;font-size:18px;font-weight:600;
+  pointer-events:none;opacity:0;transition:opacity .3s;
+  white-space:nowrap;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,.3);}
+.toast.show{opacity:1;}
 
-/* ---- tab bar ---- */
-.tabbar{
-  position:fixed;
-  bottom:0; left:0; right:0;
-  max-width:520px;
-  margin:0 auto;
-  background:var(--surface);
-  border-top:1px solid var(--border);
-  display:flex;
-  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
-  gap:6px;
-  box-shadow:0 -4px 14px rgba(0,0,0,0.05);
+/* Incoming */
+#incoming-overlay{display:none;position:fixed;inset:0;z-index:400;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;}
+.incoming-card{background:#fff;border-radius:24px;padding:3rem 2.5rem;
+  display:flex;flex-direction:column;align-items:center;gap:1.4rem;
+  min-width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.ring-avatar{width:100px;height:100px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:42px;font-weight:800;color:#fff;
+  animation:ring 1.4s ease-in-out infinite;}
+@keyframes ring{
+  0%,100%{box-shadow:0 0 0 10px rgba(37,99,235,.15),0 0 0 20px rgba(37,99,235,.07);}
+  50%{box-shadow:0 0 0 14px rgba(37,99,235,.2),0 0 0 28px rgba(37,99,235,.1);}
 }
-.tab-btn{
-  flex:1;
-  border:none;
-  background:transparent;
-  padding:8px 4px;
-  border-radius:14px;
-  color:var(--text-soft);
-  font-weight:700;
-  font-size:13.5px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:3px;
-  cursor:pointer;
-}
-.tab-btn .icon{font-size:22px;}
-.tab-btn.active{background:var(--primary-soft); color:var(--primary-dark);}
+.incoming-name{font-size:26px;font-weight:800;color:var(--text);}
+.incoming-sub{font-size:18px;color:var(--text2);}
+.incoming-btns{display:flex;gap:24px;margin-top:.5rem;}
+.incoming-accept{width:80px;height:80px;border-radius:50%;border:none;
+  background:var(--green);color:#fff;font-size:32px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(22,163,74,.4);}
+.incoming-accept:hover{background:#15803d;}
+.incoming-reject{width:80px;height:80px;border-radius:50%;border:none;
+  background:var(--danger);color:#fff;font-size:32px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(220,38,38,.4);}
+.incoming-reject:hover{background:#b91c1c;}
+.incoming-hint{font-size:16px;color:var(--text2);}
 
-.hidden{display:none !important;}
-.small-note{font-size:13px; color:var(--text-soft); margin-top:10px; line-height:1.5;}
-canvas.offscreen{display:none;}
+@media(max-width:600px){
+  .side-panel.open{width:100%;position:absolute;inset:0;z-index:50;}
+  .ctrl-btn{width:52px;height:52px;}
+  .end-btn{width:64px;height:64px;}
+  .side-btns{gap:4px;}
+  .side-btn{padding:8px 10px;font-size:13px;}
+}
 </style>
 </head>
 <body>
-<div id="app">
 
-  <header>
-    <div class="eyebrow">FRIDGE LABEL SYSTEM</div>
-    <h1>🧊 우리집 냉장고</h1>
-    <p>반찬통에 QR 라벨을 붙이고, 스캔 한 번으로 무엇이 들어있는지 기록해요.</p>
-  </header>
-
-  <main>
-
-    <!-- ================= LIST VIEW ================= -->
-    <section id="view-list" class="view active">
-      <div class="summary-row">
-        <div class="summary-card">
-          <div class="num" id="sumTotal">0</div>
-          <div class="lbl">보관 중인 음식</div>
-        </div>
-        <div class="summary-card warn">
-          <div class="num" id="sumSoon">0</div>
-          <div class="lbl">유통기한 임박</div>
-        </div>
+<!-- ── LOBBY ── -->
+<div id="lobby">
+  <div class="lobby-wrap">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg class="ic" width="26" height="26" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
       </div>
+      <span class="logo-text">화상통화</span>
+    </div>
 
-      <div id="expireAlert" class="alert-banner hidden">
-        ⚠️ <span id="expireAlertText"></span>
+    <div class="card">
+      <div>
+        <label>📛 내 이름</label>
+        <input type="text" id="my-name" placeholder="이름을 입력하세요" autocomplete="off"/>
       </div>
-
-      <div id="listContainer"></div>
-
-      <div id="listEmpty" class="empty-state hidden">
-        <div class="big-emoji">🥫</div>
-        <h3>아직 등록된 음식이 없어요</h3>
-        <p>아래 탭에서 QR 라벨을 만들고<br>반찬통에 붙인 뒤 스캔해서 등록해 보세요.</p>
-      </div>
-    </section>
-
-    <!-- ================= GENERATE VIEW ================= -->
-    <section id="view-generate" class="view">
-      <div class="panel">
-        <h2>🏷️ 새 QR 라벨 만들기</h2>
-        <p class="sub">버튼을 누르면 이 통만을 위한 고유 QR 코드가 만들어져요. 인쇄하거나 사진으로 저장해서 반찬통에 붙여주세요.</p>
-        <button class="btn btn-accent btn-full btn-lg" id="btnMakeQr">✨ 새 라벨 만들기</button>
-
-        <div id="qrResult" class="hidden">
-          <div class="qr-wrap">
-            <div id="qrCanvasHolder"></div>
-            <div class="qr-id-text" id="qrIdText"></div>
+      <div>
+        <label>📷 카메라 미리보기</label>
+        <div class="preview-box">
+          <video id="preview-vid" autoplay muted playsinline></video>
+          <div class="preview-placeholder" id="preview-ph">
+            <svg class="ic" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            <span>아래 버튼을 눌러 카메라를 켜세요</span>
           </div>
-          <div style="display:flex; gap:10px; margin-top:14px;">
-            <button class="btn btn-outline" style="flex:1" id="btnDownloadQr">⬇️ 이미지로 저장</button>
-            <button class="btn btn-primary" style="flex:1" id="btnPrintQr">🖨️ 인쇄하기</button>
-          </div>
-          <p class="small-note">💡 라벨을 반찬통에 붙인 뒤, 아래 <b>스캔</b> 탭에서 이 QR을 스캔하면 바로 음식 이름을 등록할 수 있어요.</p>
         </div>
       </div>
-    </section>
-
-    <!-- ================= SCAN VIEW ================= -->
-    <section id="view-scan" class="view">
-
-      <div class="panel" id="scanPanel">
-        <h2>📷 QR 스캔하기</h2>
-        <p class="sub">반찬통에 붙인 QR 라벨을 카메라로 비춰주세요.</p>
-
-        <div id="scanIdle">
-          <button class="btn btn-primary btn-full btn-lg" id="btnStartCam">📷 카메라로 스캔 시작</button>
-
-          <div class="divider-or">또는</div>
-
-          <label class="btn btn-outline btn-full" for="fileScanInput" style="cursor:pointer;">🖼️ QR 사진 업로드로 인식</label>
-          <input type="file" accept="image/*" id="fileScanInput" class="hidden">
-
-          <div class="divider-or">또는</div>
-
-          <button class="btn btn-outline btn-full" id="btnManualId">⌨️ 라벨 번호 직접 입력</button>
-        </div>
-
-        <div id="scanActive" class="hidden">
-          <div class="scan-video-wrap">
-            <video id="scanVideo" playsinline muted></video>
-            <div class="scan-frame"></div>
-          </div>
-          <p class="scan-status" style="color:var(--text-soft); margin-top:10px;">QR 코드를 사각형 안에 맞춰주세요</p>
-          <button class="btn btn-danger-outline btn-full" id="btnStopCam" style="margin-top:10px;">스캔 중지</button>
-        </div>
-
-        <canvas id="scanCanvas" class="offscreen"></canvas>
+      <div class="btn-row">
+        <button class="btn-toggle" id="cam-toggle" onclick="togglePreCam()">
+          <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          카메라 켜기
+        </button>
+        <button class="btn-toggle" id="mic-toggle" onclick="togglePreMic()">
+          <svg class="ic" width="20" height="20" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          마이크 켜기
+        </button>
       </div>
+      <p class="status-msg" id="lobby-status">준비 중...</p>
+      <button class="btn-primary" id="ready-btn" onclick="goReady()" disabled>📞 입장하기</button>
+    </div>
 
-      <!-- manual id entry -->
-      <div class="panel hidden" id="manualIdPanel">
-        <h2>⌨️ 라벨 번호 입력</h2>
-        <div class="field">
-          <label>라벨 하단에 적힌 번호를 입력해주세요</label>
-          <input type="text" id="manualIdInput" placeholder="예: FR-XXXXXXX">
-        </div>
-        <div style="display:flex; gap:10px;">
-          <button class="btn btn-outline" style="flex:1" id="btnManualCancel">취소</button>
-          <button class="btn btn-primary" style="flex:1" id="btnManualConfirm">확인</button>
-        </div>
+    <div class="divider">📋 내 통화 번호 — 상대방에게 알려주세요</div>
+    <div class="id-box">
+      <div>
+        <div class="id-label">내 통화 번호</div>
+        <div class="id-value" id="my-id-display">----</div>
       </div>
+      <button class="copy-btn" onclick="copyId()">📋 복사</button>
+    </div>
 
-      <!-- result: existing item -->
-      <div class="panel hidden" id="scanExistingPanel">
-        <h2>📦 이 통에는 이미 음식이 있어요</h2>
-        <div id="scanExistingCard"></div>
-        <div style="display:flex; gap:10px; margin-top:14px;">
-          <button class="btn btn-danger-outline" style="flex:1" id="btnEmptyFromScan">✅ 다 먹었어요 (비우기)</button>
-          <button class="btn btn-outline" style="flex:1" id="btnEditFromScan">✏️ 정보 수정</button>
-        </div>
+    <div class="card">
+      <div>
+        <label>📞 상대방 번호로 전화 걸기</label>
+        <input type="text" id="peer-id-input" placeholder="상대방 번호를 입력하세요" autocomplete="off" onkeydown="if(event.key==='Enter')callPeer()"/>
       </div>
-
-      <!-- result: new item form -->
-      <div class="panel hidden" id="scanNewPanel">
-        <h2>🆕 빈 통이에요. 음식을 등록해주세요</h2>
-        <p class="sub">라벨 번호: <b id="scanNewIdLabel"></b></p>
-
-        <div class="field">
-          <label>음식 이름 *</label>
-          <input type="text" id="foodNameInput" placeholder="예: 멸치볶음">
-        </div>
-
-        <div class="field">
-          <label>종류</label>
-          <div class="cat-grid" id="catGrid"></div>
-        </div>
-
-        <div class="field">
-          <label>수량 / 메모</label>
-          <input type="text" id="foodQtyInput" placeholder="예: 1통, 2인분">
-        </div>
-
-        <div class="field">
-          <label>유통기한 (선택)</label>
-          <input type="date" id="foodExpiryInput">
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:6px;">
-          <button class="btn btn-outline" style="flex:1" id="btnCancelNewItem">취소</button>
-          <button class="btn btn-primary" style="flex:1" id="btnSaveNewItem">💾 냉장고에 저장</button>
-        </div>
-      </div>
-
-    </section>
-
-  </main>
-
-  <nav class="tabbar">
-    <button class="tab-btn active" data-view="list"><span class="icon">📋</span>목록</button>
-    <button class="tab-btn" data-view="generate"><span class="icon">🏷️</span>QR 만들기</button>
-    <button class="tab-btn" data-view="scan"><span class="icon">📷</span>스캔</button>
-  </nav>
-
-  <div id="toast"></div>
+      <button class="btn-primary" id="call-btn" onclick="callPeer()" disabled>📞 전화 걸기</button>
+    </div>
+  </div>
 </div>
 
-<script>
-/* ================= CONSTANTS ================= */
-const QR_PREFIX = "FRIDGE-CONTAINER:";
-const INDEX_KEY = "fridge_index";
-const ITEM_KEY = id => "fridge_item_" + id;
+<!-- ── CALL SCREEN ── -->
+<div id="call-screen">
+  <div class="call-layout">
+    <div class="video-stage" id="video-stage">
+      <div class="video-grid">
+        <div class="video-cell" id="remote-cell">
+          <video id="remote-vid" autoplay playsinline></video>
+          <div class="remote-placeholder-call" id="remote-ph-call">
+            <div class="remote-avatar" id="call-avatar">?</div>
+            <p id="call-status-txt">연결 중...</p>
+          </div>
+          <div class="vid-label" id="peer-vid-label">상대방</div>
+        </div>
+        <div class="video-cell" id="local-cell">
+          <video id="local-vid" autoplay muted playsinline></video>
+          <div class="pip-cam-off" id="pip-cam-off">
+            <svg class="ic" viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/></svg>
+            카메라 꺼짐
+          </div>
+          <div class="vid-label">나</div>
+        </div>
+      </div>
 
-const CATEGORIES = [
-  {id:"banchan", label:"반찬", em:"🥢", color:"#6E8F5B"},
-  {id:"soup", label:"국/찌개", em:"🍲", color:"#C4573F"},
-  {id:"kimchi", label:"김치", em:"🌶️", color:"#B5342B"},
-  {id:"meat", label:"육류/생선", em:"🥩", color:"#A66A3C"},
-  {id:"veg", label:"채소", em:"🥬", color:"#4C8A5E"},
-  {id:"fruit", label:"과일", em:"🍎", color:"#D4573D"},
-  {id:"dairy", label:"유제품", em:"🥛", color:"#5A85B0"},
-  {id:"etc", label:"기타", em:"🍱", color:"#8A8578"},
+      <div class="hud-top">
+        <div class="badge"><span class="dot"></span> 연결됨</div>
+        <div class="badge" id="timer-badge">00:00</div>
+      </div>
+
+      <!-- 퀴즈 오버레이 -->
+      <div id="quiz-overlay">
+        <div class="quiz-card">
+          <div class="quiz-header">
+            <span class="quiz-title">🎯 퀴즈 — 설명하세요!</span>
+            <span class="quiz-score-badge">점수: <span id="quiz-score">0</span></span>
+          </div>
+          <div class="quiz-timer-wrap">
+            <svg class="quiz-timer-svg" width="64" height="64" viewBox="0 0 64 64">
+              <circle class="quiz-timer-bg" cx="32" cy="32" r="26"/>
+              <circle class="quiz-timer-ring" id="quiz-ring" cx="32" cy="32" r="26"/>
+            </svg>
+            <div class="quiz-timer-num" id="quiz-countdown">30</div>
+          </div>
+          <div class="quiz-word" id="quiz-word">—</div>
+          <!-- AI 그림 영역 -->
+          <div class="quiz-img-wrap" id="quiz-img-wrap">
+            <div class="quiz-img-loading">
+              <div class="quiz-img-spinner"></div>
+              <span>그림 불러오는 중...</span>
+            </div>
+          </div>
+          <div class="quiz-hint" id="quiz-hint"></div>
+          <div class="quiz-actions">
+            <button class="quiz-btn correct" onclick="quizCorrect()">✅ 정답!</button>
+            <button class="quiz-btn skip" onclick="quizSkip()">⏭ 넘기기</button>
+            <button class="quiz-btn stop" onclick="quizStop()">⏹ 종료</button>
+          </div>
+          <div class="quiz-result-flash" id="quiz-flash"></div>
+        </div>
+      </div>
+
+      <!-- 퀴즈 알림 (맞추는 사람) -->
+      <div class="quiz-notify" id="quiz-notify">
+        <div class="quiz-notify-card">
+          <p>상대방이 설명하는 단어를 맞춰보세요!</p>
+          <strong id="quiz-notify-round">1번째 문제</strong>
+          <div class="quiz-notify-timer" id="quiz-notify-timer">30</div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <!-- 1행: 통화 정보 + 주요 버튼 -->
+        <div class="ctrl-top">
+          <div class="peer-info">
+            <span class="inlbl">통화 중</span>
+            <strong id="peer-name-disp">상대방</strong>
+          </div>
+          <div class="ctrl-center">
+            <button class="ctrl-btn" id="ctrl-mic" onclick="ctrlMic()">
+              <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <span class="btn-lbl">마이크</span>
+            </button>
+            <button class="ctrl-btn" id="ctrl-cam" onclick="ctrlCam()">
+              <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              <span class="btn-lbl">카메라</span>
+            </button>
+            <button class="ctrl-btn end-btn" onclick="hangUp()">
+              <svg class="ic" width="26" height="26" viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 4.43 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.34 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.3 9.89"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+              <span class="btn-lbl">통화종료</span>
+            </button>
+            <button class="ctrl-btn" id="ctrl-share" onclick="ctrlShare()">
+              <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <span class="btn-lbl">화면공유</span>
+            </button>
+            <button class="ctrl-btn" id="ctrl-flip" onclick="flipCamera()">
+              <svg class="ic" width="22" height="22" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+              <span class="btn-lbl">전환</span>
+            </button>
+          </div>
+        </div>
+        <!-- 2행: 채팅·화이트보드·퀴즈 — 중앙 정렬 -->
+        <div class="side-btns">
+          <button class="side-btn" id="btn-chat" onclick="togglePanel('chat')">
+            <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            채팅<span class="unread-badge" id="unread-badge" style="display:none">0</span>
+          </button>
+          <button class="side-btn" id="btn-wb" onclick="togglePanel('wb')">
+            <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            화이트보드
+          </button>
+          <button class="side-btn quiz-start-btn" id="btn-quiz" onclick="startQuiz()">
+            <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            퀴즈 시작
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side panel -->
+    <div class="side-panel" id="side-panel">
+      <div class="panel-tabs">
+        <button class="tab-btn active" id="tab-chat" onclick="switchTab('chat')">
+          <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>채팅
+        </button>
+        <button class="tab-btn" id="tab-wb" onclick="switchTab('wb')">
+          <svg class="ic" width="14" height="14" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>화이트보드
+        </button>
+        <button class="panel-close" onclick="closePanel()">✕</button>
+      </div>
+      <div class="chat-pane active" id="chat-pane">
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg-system">채팅이 시작되었습니다</div>
+        </div>
+        <div class="chat-input-area">
+          <textarea id="chat-input" placeholder="메시지를 입력하세요..." rows="1"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
+          <button class="send-btn" onclick="sendChat()">
+            <svg class="ic" width="18" height="18" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="wb-pane" id="wb-pane">
+        <div class="wb-toolbar">
+          <button class="wb-tool-btn active" id="wbt-pen" onclick="setWbTool('pen')">
+            <svg class="ic" width="13" height="13" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>펜
+          </button>
+          <button class="wb-tool-btn" id="wbt-eraser" onclick="setWbTool('eraser')">
+            <svg class="ic" width="13" height="13" viewBox="0 0 24 24"><polyline points="20 20 8 20"/><path d="M8.5 12.5L4 17l3 3 9.5-9.5"/><path d="M15 7l2 2"/></svg>지우개
+          </button>
+          <button class="wb-tool-btn" id="wbt-line" onclick="setWbTool('line')">직선</button>
+          <button class="wb-tool-btn" id="wbt-rect" onclick="setWbTool('rect')">사각형</button>
+          <button class="wb-tool-btn" id="wbt-circle" onclick="setWbTool('circle')">원</button>
+          <button class="wb-tool-btn" id="wbt-text" onclick="setWbTool('text')">텍스트</button>
+          <div style="flex:1"></div>
+          <button class="wb-tool-btn" onclick="wbUndo()">↩</button>
+          <button class="wb-tool-btn" onclick="wbClear()" style="color:var(--danger)">지우기</button>
+        </div>
+        <div class="wb-toolbar" style="padding-top:4px;padding-bottom:8px;">
+          <div class="wb-color-swatch selected" style="background:#1a1a2e;border:2px solid #888" onclick="setWbColor('#1a1a2e',this)"></div>
+          <div class="wb-color-swatch" style="background:#ffffff" onclick="setWbColor('#ffffff',this)"></div>
+          <div class="wb-color-swatch" style="background:#2563eb" onclick="setWbColor('#2563eb',this)"></div>
+          <div class="wb-color-swatch" style="background:#16a34a" onclick="setWbColor('#16a34a',this)"></div>
+          <div class="wb-color-swatch" style="background:#dc2626" onclick="setWbColor('#dc2626',this)"></div>
+          <div class="wb-color-swatch" style="background:#d97706" onclick="setWbColor('#d97706',this)"></div>
+          <div class="wb-color-swatch" style="background:#7c3aed" onclick="setWbColor('#7c3aed',this)"></div>
+          <div class="wb-color-swatch" style="background:#db2777" onclick="setWbColor('#db2777',this)"></div>
+          <div style="flex:1"></div>
+          <div class="wb-size-row">굵기 <input type="range" id="wb-size" min="1" max="20" value="3" oninput="wbSize=this.value"></div>
+        </div>
+        <div class="wb-canvas-wrap"><canvas id="wb-canvas"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incoming -->
+<div id="incoming-overlay">
+  <div class="incoming-card">
+    <div class="ring-avatar" id="ring-avatar">?</div>
+    <div class="incoming-name" id="incoming-name">알 수 없음</div>
+    <div class="incoming-sub">📞 영상통화가 걸려왔습니다</div>
+    <div class="incoming-btns">
+      <button class="incoming-accept" onclick="acceptCall()">
+        <svg class="ic" width="36" height="36" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.38 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.29 6.29l1.31-1.31a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+      <button class="incoming-reject" onclick="rejectCall()">
+        <svg class="ic" width="36" height="36" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <p class="incoming-hint">✅ 초록 = 받기 &nbsp;|&nbsp; ❌ 빨간 = 거절</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+let peer=null,localStream=null,currentCall=null,pendingCall=null,dataConn=null;
+let remotePeerId='',micEnabled=true,camEnabled=true,sharing=false,screenStream=null;
+let timerInterval=null,elapsed=0,facingMode='user';
+let preCamOn=false,preMicOn=false,preStream=null;
+let panelOpen=false,currentTab='chat',unreadCount=0;
+let myName='이름없음';
+
+// ── PeerJS ──
+function initPeer(){
+  const id=String(Math.floor(1000+Math.random()*9000));
+  peer=new Peer(id,{host:'0.peerjs.com',port:443,path:'/',secure:true,
+    config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}});
+  peer.on('open',pid=>{
+    document.getElementById('my-id-display').textContent=pid;
+    setLobbyStatus('✅ 준비 완료 — 번호를 상대방에게 알려주세요','ok');
+    document.getElementById('ready-btn').disabled=false;
+    document.getElementById('call-btn').disabled=false;
+  });
+  peer.on('error',err=>{
+    if(err.type==='peer-unavailable'){setLobbyStatus('상대방을 찾을 수 없습니다','error');showToast('❌ 상대방이 접속해 있지 않습니다');}
+    else setLobbyStatus('오류: '+err.message,'error');
+  });
+  peer.on('call',incoming=>{
+    pendingCall=incoming;
+    const name=incoming.metadata?.name||incoming.peer;
+    document.getElementById('incoming-name').textContent=name;
+    document.getElementById('ring-avatar').textContent=name.charAt(0).toUpperCase();
+    document.getElementById('incoming-overlay').style.display='flex';
+  });
+  peer.on('connection',conn=>setupDataConn(conn));
+  peer.on('disconnected',()=>peer.reconnect());
+}
+
+function setupDataConn(conn){
+  dataConn=conn;
+  conn.on('open',()=>showToast('💬 채팅 연결됨'));
+  conn.on('data',data=>{
+    if(data.type==='chat') receiveChatMsg(data);
+    else if(data.type==='wb-draw') wbReceiveDraw(data);
+    else if(data.type==='wb-clear') wbClearLocal();
+    else if(data.type==='wb-undo') wbUndoLocal();
+    else if(data.type.startsWith('quiz-')) handleQuizData(data);
+  });
+  conn.on('close',()=>{ dataConn=null; });
+}
+function sendData(obj){ if(dataConn&&dataConn.open) dataConn.send(obj); }
+
+// ── Media ──
+async function togglePreCam(){
+  const btn=document.getElementById('cam-toggle');
+  if(!preCamOn){
+    try{
+      preStream=await navigator.mediaDevices.getUserMedia({video:{facingMode},audio:preMicOn});
+      document.getElementById('preview-vid').srcObject=preStream;
+      document.getElementById('preview-ph').style.display='none';
+      preCamOn=true; btn.classList.add('on');
+      btn.textContent='📷 카메라 켜짐';
+    }catch(e){showToast('카메라 권한이 필요합니다 (localhost 또는 https)');}
+  }else{
+    if(preStream) preStream.getVideoTracks().forEach(t=>t.stop());
+    document.getElementById('preview-vid').srcObject=null;
+    document.getElementById('preview-ph').style.display='flex';
+    preCamOn=false; btn.classList.remove('on');
+    btn.innerHTML='<svg class="ic" width="20" height="20" viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> 카메라 켜기';
+  }
+}
+async function togglePreMic(){
+  preMicOn=!preMicOn;
+  const btn=document.getElementById('mic-toggle');
+  btn.classList.toggle('on',preMicOn);
+  btn.innerHTML=preMicOn
+    ?'<svg class="ic" width="20" height="20" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 마이크 켜짐'
+    :'<svg class="ic" width="20" height="20" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> 마이크 켜기';
+}
+async function getLocalStream(){
+  if(localStream) return localStream;
+  try{ localStream=await navigator.mediaDevices.getUserMedia({video:preCamOn?{facingMode}:false,audio:true}); }
+  catch(e){ try{ localStream=await navigator.mediaDevices.getUserMedia({video:false,audio:true}); }catch(e2){ localStream=new MediaStream(); } }
+  return localStream;
+}
+function goReady(){
+  myName=document.getElementById('my-name').value.trim()||'이름없음';
+  document.getElementById('my-name').value=myName;
+  showToast('✅ 준비 완료!');
+}
+async function callPeer(){
+  const peerId=document.getElementById('peer-id-input').value.trim();
+  if(!peerId){showToast('상대방 번호를 입력하세요');return;}
+  if(peerId===peer.id){showToast('자기 자신에게는 전화할 수 없습니다');return;}
+  setLobbyStatus('연결 중...','');
+  const stream=await getLocalStream();
+  myName=document.getElementById('my-name').value||'이름없음';
+  const conn=peer.connect(peerId,{metadata:{name:myName}});
+  setupDataConn(conn);
+  const call=peer.call(peerId,stream,{metadata:{name:myName}});
+  if(!call){setLobbyStatus('연결 실패','error');return;}
+  currentCall=call; remotePeerId=peerId;
+  document.getElementById('peer-name-disp').textContent=peerId;
+  document.getElementById('call-avatar').textContent=peerId.charAt(0);
+  document.getElementById('peer-vid-label').textContent=peerId;
+  document.getElementById('call-status-txt').textContent='연결 중...';
+  enterCallScreen(stream);
+  call.on('stream',rs=>{
+    document.getElementById('remote-vid').srcObject=rs;
+    document.getElementById('remote-ph-call').style.display='none';
+    showToast('✅ 연결되었습니다!'); startTimer();
+  });
+  call.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
+  call.on('error',e=>{showToast('오류: '+e.message);endCallCleanup();});
+}
+async function acceptCall(){
+  document.getElementById('incoming-overlay').style.display='none';
+  const stream=await getLocalStream();
+  currentCall=pendingCall; remotePeerId=pendingCall.peer;
+  const name=pendingCall.metadata?.name||pendingCall.peer;
+  myName=document.getElementById('my-name').value||'이름없음';
+  document.getElementById('peer-name-disp').textContent=name;
+  document.getElementById('call-avatar').textContent=name.charAt(0).toUpperCase();
+  document.getElementById('peer-vid-label').textContent=name;
+  document.getElementById('call-status-txt').textContent=name+'와 연결 중...';
+  pendingCall.answer(stream);
+  enterCallScreen(stream);
+  pendingCall.on('stream',rs=>{
+    document.getElementById('remote-vid').srcObject=rs;
+    document.getElementById('remote-ph-call').style.display='none';
+    showToast('✅ 연결되었습니다!'); startTimer();
+  });
+  pendingCall.on('close',()=>{showToast('통화가 종료되었습니다');endCallCleanup();});
+  pendingCall=null;
+}
+function rejectCall(){
+  document.getElementById('incoming-overlay').style.display='none';
+  if(pendingCall){pendingCall.close();pendingCall=null;}
+  showToast('통화를 거절했습니다');
+}
+function enterCallScreen(stream){
+  if(preStream){preStream.getTracks().forEach(t=>t.stop());preStream=null;}
+  document.getElementById('local-vid').srcObject=stream;
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('call-screen').style.display='block';
+  micEnabled=true; camEnabled=preCamOn;
+  updateCtrlMic(); updateCtrlCam();
+  initWhiteboard();
+}
+
+// ── Controls ──
+function ctrlMic(){
+  micEnabled=!micEnabled;
+  if(localStream) localStream.getAudioTracks().forEach(t=>t.enabled=micEnabled);
+  updateCtrlMic(); showToast(micEnabled?'🎙 마이크 켜짐':'🔇 마이크 꺼짐');
+}
+function ctrlCam(){
+  camEnabled=!camEnabled;
+  if(localStream) localStream.getVideoTracks().forEach(t=>t.enabled=camEnabled);
+  document.getElementById('pip-cam-off').style.display=camEnabled?'none':'flex';
+  updateCtrlCam(); showToast(camEnabled?'📷 카메라 켜짐':'📷 카메라 꺼짐');
+}
+function updateCtrlMic(){document.getElementById('ctrl-mic').className='ctrl-btn'+(micEnabled?'':' off');}
+function updateCtrlCam(){document.getElementById('ctrl-cam').className='ctrl-btn'+(camEnabled?'':' off');}
+async function ctrlShare(){
+  const btn=document.getElementById('ctrl-share');
+  if(!sharing){
+    try{
+      screenStream=await navigator.mediaDevices.getDisplayMedia({video:true});
+      const track=screenStream.getVideoTracks()[0];
+      const sender=currentCall?.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
+      if(sender) sender.replaceTrack(track);
+      document.getElementById('local-vid').srcObject=screenStream;
+      sharing=true; btn.classList.add('active');
+      showToast('🖥 화면 공유 중');
+      track.onended=()=>stopShare();
+    }catch(e){showToast('화면 공유 취소됨');}
+  }else stopShare();
+}
+function stopShare(){
+  if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
+  const sender=currentCall?.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
+  const camTrack=localStream?.getVideoTracks()[0];
+  if(sender&&camTrack) sender.replaceTrack(camTrack);
+  if(localStream) document.getElementById('local-vid').srcObject=localStream;
+  sharing=false; document.getElementById('ctrl-share').classList.remove('active');
+  showToast('화면 공유 종료');
+}
+async function flipCamera(){
+  facingMode=facingMode==='user'?'environment':'user';
+  try{
+    const ns=await navigator.mediaDevices.getUserMedia({video:{facingMode},audio:true});
+    const nt=ns.getVideoTracks()[0];
+    const sender=currentCall?.peerConnection?.getSenders().find(s=>s.track?.kind==='video');
+    if(sender) sender.replaceTrack(nt);
+    if(localStream){localStream.getVideoTracks().forEach(t=>{t.stop();localStream.removeTrack(t);});localStream.addTrack(nt);}
+    document.getElementById('local-vid').srcObject=localStream;
+    showToast(facingMode==='user'?'셀카 카메라':'후면 카메라');
+  }catch(e){showToast('카메라 전환 실패');}
+}
+function hangUp(){if(currentCall)currentCall.close();endCallCleanup();}
+function endCallCleanup(){
+  clearInterval(timerInterval);timerInterval=null;elapsed=0;
+  if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null;}
+  if(screenStream){screenStream.getTracks().forEach(t=>t.stop());screenStream=null;}
+  if(dataConn){dataConn.close();dataConn=null;}
+  currentCall=null;remotePeerId='';sharing=false;
+  clearInterval(quizTimer); quizActive=false; quizIsExplainer=false;
+  document.getElementById('quiz-overlay').classList.remove('show');
+  document.getElementById('quiz-notify').classList.remove('show');
+  document.getElementById('btn-quiz').classList.remove('active');
+  document.getElementById('remote-vid').srcObject=null;
+  document.getElementById('remote-ph-call').style.display='flex';
+  document.getElementById('local-vid').srcObject=null;
+  document.getElementById('call-screen').style.display='none';
+  document.getElementById('lobby').style.display='flex';
+  document.getElementById('timer-badge').textContent='00:00';
+  document.getElementById('chat-messages').innerHTML='<div class="msg-system">채팅이 시작되었습니다</div>';
+  closePanel(); unreadCount=0; updateUnreadBadge();
+}
+
+// ── Timer ──
+function startTimer(){
+  elapsed=0; clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    elapsed++;
+    const m=String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s=String(elapsed%60).padStart(2,'0');
+    document.getElementById('timer-badge').textContent=m+':'+s;
+  },1000);
+}
+
+// ── Panel ──
+function togglePanel(tab){
+  if(panelOpen&&currentTab===tab){closePanel();return;}
+  panelOpen=true;
+  document.getElementById('side-panel').classList.add('open');
+  switchTab(tab);
+  if(tab==='chat'){unreadCount=0;updateUnreadBadge();}
+  if(tab==='wb') resizeWbCanvas();
+}
+function closePanel(){
+  panelOpen=false;
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('btn-chat').classList.remove('active');
+  document.getElementById('btn-wb').classList.remove('active');
+}
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('chat-pane').classList.toggle('active',tab==='chat');
+  document.getElementById('wb-pane').classList.toggle('active',tab==='wb');
+  document.getElementById('tab-chat').classList.toggle('active',tab==='chat');
+  document.getElementById('tab-wb').classList.toggle('active',tab==='wb');
+  document.getElementById('btn-chat').classList.toggle('active',tab==='chat');
+  document.getElementById('btn-wb').classList.toggle('active',tab==='wb');
+  if(tab==='chat'){unreadCount=0;updateUnreadBadge();}
+  if(tab==='wb') setTimeout(resizeWbCanvas,50);
+}
+function updateUnreadBadge(){
+  const b=document.getElementById('unread-badge');
+  b.style.display=unreadCount>0?'inline':'none';
+  b.textContent=unreadCount;
+}
+
+// ── Chat ──
+function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim();
+  if(!text) return;
+  const msg={type:'chat',name:myName,text,time:Date.now()};
+  appendChatMsg(msg,true);
+  sendData(msg);
+  inp.value=''; inp.style.height='auto';
+}
+function receiveChatMsg(data){
+  appendChatMsg(data,false);
+  if(!(panelOpen&&currentTab==='chat')){unreadCount++;updateUnreadBadge();}
+}
+function appendChatMsg(data,isMe){
+  const wrap=document.getElementById('chat-messages');
+  const t=new Date(data.time);
+  const ts=t.getHours().toString().padStart(2,'0')+':'+t.getMinutes().toString().padStart(2,'0');
+  const row=document.createElement('div');
+  row.className='msg-row '+(isMe?'me':'them');
+  row.innerHTML=`<div class="msg-name">${escHtml(data.name)}</div><div class="msg-bubble">${escHtml(data.text)}</div><div class="msg-time">${ts}</div>`;
+  wrap.appendChild(row); wrap.scrollTop=wrap.scrollHeight;
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Whiteboard ──
+let wbCanvas,wbCtx,wbDrawing=false,wbTool='pen',wbColor='#1a1a2e',wbSize=3;
+let wbStartX,wbStartY,wbSnap=null,wbHistory=[],MAX_HISTORY=30;
+function initWhiteboard(){
+  wbCanvas=document.getElementById('wb-canvas');
+  wbCtx=wbCanvas.getContext('2d');
+  resizeWbCanvas();
+  wbCanvas.addEventListener('mousedown',wbStart);
+  wbCanvas.addEventListener('mousemove',wbMove);
+  wbCanvas.addEventListener('mouseup',wbEnd);
+  wbCanvas.addEventListener('mouseleave',wbEnd);
+  wbCanvas.addEventListener('touchstart',e=>{e.preventDefault();wbStart(e.touches[0]);},{passive:false});
+  wbCanvas.addEventListener('touchmove',e=>{e.preventDefault();wbMove(e.touches[0]);},{passive:false});
+  wbCanvas.addEventListener('touchend',e=>{e.preventDefault();wbEnd();},{passive:false});
+}
+function resizeWbCanvas(){
+  if(!wbCanvas) return;
+  const wrap=wbCanvas.parentElement;
+  const img=wbCtx?wbCtx.getImageData(0,0,wbCanvas.width,wbCanvas.height):null;
+  wbCanvas.width=wrap.clientWidth||300; wbCanvas.height=wrap.clientHeight||400;
+  wbCtx.fillStyle='#fff'; wbCtx.fillRect(0,0,wbCanvas.width,wbCanvas.height);
+  if(img) wbCtx.putImageData(img,0,0);
+}
+function getWbPos(e){const r=wbCanvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+function wbSaveHistory(){if(wbHistory.length>=MAX_HISTORY)wbHistory.shift();wbHistory.push(wbCtx.getImageData(0,0,wbCanvas.width,wbCanvas.height));}
+function wbStart(e){
+  if(wbTool==='text'){
+    const pos=getWbPos(e);const txt=prompt('텍스트 입력:');
+    if(txt){wbSaveHistory();wbCtx.font=`${Math.max(16,wbSize*4)}px -apple-system,sans-serif`;wbCtx.fillStyle=wbColor;wbCtx.fillText(txt,pos.x,pos.y);wbSendDraw({tool:'text',x:pos.x,y:pos.y,text:txt,color:wbColor,size:wbSize});}
+    return;
+  }
+  wbDrawing=true;const pos=getWbPos(e);wbStartX=pos.x;wbStartY=pos.y;wbSaveHistory();
+  if(wbTool==='pen'||wbTool==='eraser'){wbCtx.beginPath();wbCtx.moveTo(pos.x,pos.y);}
+  if(wbTool==='line'||wbTool==='rect'||wbTool==='circle'){wbSnap=wbCtx.getImageData(0,0,wbCanvas.width,wbCanvas.height);}
+}
+function wbMove(e){
+  if(!wbDrawing) return;const pos=getWbPos(e);
+  if(wbTool==='pen'){
+    wbCtx.strokeStyle=wbColor;wbCtx.lineWidth=wbSize;wbCtx.lineCap='round';wbCtx.lineJoin='round';
+    wbCtx.lineTo(pos.x,pos.y);wbCtx.stroke();
+    wbSendDraw({tool:'pen-seg',x1:wbStartX,y1:wbStartY,x2:pos.x,y2:pos.y,color:wbColor,size:wbSize});
+    wbCtx.beginPath();wbCtx.moveTo(pos.x,pos.y);wbStartX=pos.x;wbStartY=pos.y;
+  }else if(wbTool==='eraser'){
+    wbCtx.strokeStyle='#fff';wbCtx.lineWidth=wbSize*5;wbCtx.lineCap='round';wbCtx.lineJoin='round';
+    wbCtx.lineTo(pos.x,pos.y);wbCtx.stroke();
+    wbSendDraw({tool:'pen-seg',x1:wbStartX,y1:wbStartY,x2:pos.x,y2:pos.y,color:'#fff',size:wbSize*5});
+    wbCtx.beginPath();wbCtx.moveTo(pos.x,pos.y);wbStartX=pos.x;wbStartY=pos.y;
+  }else if(wbSnap){
+    wbCtx.putImageData(wbSnap,0,0);wbCtx.strokeStyle=wbColor;wbCtx.lineWidth=wbSize;wbCtx.beginPath();
+    if(wbTool==='line'){wbCtx.moveTo(wbStartX,wbStartY);wbCtx.lineTo(pos.x,pos.y);wbCtx.stroke();}
+    else if(wbTool==='rect'){wbCtx.strokeRect(wbStartX,wbStartY,pos.x-wbStartX,pos.y-wbStartY);}
+    else if(wbTool==='circle'){const rx=Math.abs(pos.x-wbStartX)/2,ry=Math.abs(pos.y-wbStartY)/2,cx=wbStartX+(pos.x-wbStartX)/2,cy=wbStartY+(pos.y-wbStartY)/2;wbCtx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);wbCtx.stroke();}
+  }
+}
+function wbEnd(e){
+  if(!wbDrawing) return;wbDrawing=false;
+  if(wbTool==='line'||wbTool==='rect'||wbTool==='circle'){
+    let ex,ey;if(e&&e.clientX!==undefined){const p=getWbPos(e);ex=p.x;ey=p.y;}else{ex=wbStartX;ey=wbStartY;}
+    if(ex!==undefined)wbSendDraw({tool:wbTool,x1:wbStartX,y1:wbStartY,x2:ex,y2:ey,color:wbColor,size:wbSize});
+    wbSnap=null;
+  }
+}
+function wbSendDraw(data){sendData({type:'wb-draw',...data});}
+function wbReceiveDraw(data){
+  if(!wbCtx) return;
+  wbCtx.strokeStyle=data.color;wbCtx.lineWidth=data.size;wbCtx.lineCap='round';wbCtx.lineJoin='round';wbCtx.beginPath();
+  if(data.tool==='pen-seg'){wbCtx.moveTo(data.x1,data.y1);wbCtx.lineTo(data.x2,data.y2);wbCtx.stroke();}
+  else if(data.tool==='line'){wbCtx.moveTo(data.x1,data.y1);wbCtx.lineTo(data.x2,data.y2);wbCtx.stroke();}
+  else if(data.tool==='rect'){wbCtx.strokeRect(data.x1,data.y1,data.x2-data.x1,data.y2-data.y1);}
+  else if(data.tool==='circle'){const rx=Math.abs(data.x2-data.x1)/2,ry=Math.abs(data.y2-data.y1)/2,cx=data.x1+(data.x2-data.x1)/2,cy=data.y1+(data.y2-data.y1)/2;wbCtx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);wbCtx.stroke();}
+  else if(data.tool==='text'){wbCtx.font=`${Math.max(16,data.size*4)}px -apple-system,sans-serif`;wbCtx.fillStyle=data.color;wbCtx.fillText(data.text,data.x,data.y);}
+}
+function wbUndo(){if(wbHistory.length===0){showToast('더 이상 되돌릴 수 없습니다');return;}const snap=wbHistory.pop();wbCtx.putImageData(snap,0,0);sendData({type:'wb-undo'});}
+function wbUndoLocal(){if(wbHistory.length===0)return;wbCtx.putImageData(wbHistory.pop(),0,0);}
+function wbClear(){if(!confirm('화이트보드를 지울까요?'))return;wbSaveHistory();wbCtx.fillStyle='#fff';wbCtx.fillRect(0,0,wbCanvas.width,wbCanvas.height);sendData({type:'wb-clear'});}
+function wbClearLocal(){if(!wbCtx)return;wbCtx.fillStyle='#fff';wbCtx.fillRect(0,0,wbCanvas.width,wbCanvas.height);}
+function setWbTool(t){wbTool=t;document.querySelectorAll('.wb-tool-btn').forEach(b=>b.classList.remove('active'));const el=document.getElementById('wbt-'+t);if(el)el.classList.add('active');wbCanvas.style.cursor=t==='eraser'?'cell':t==='text'?'text':'crosshair';}
+function setWbColor(c,el){wbColor=c;document.querySelectorAll('.wb-color-swatch').forEach(s=>s.classList.remove('selected'));el.classList.add('selected');}
+
+// ── Helpers ──
+function setLobbyStatus(msg,cls){const el=document.getElementById('lobby-status');el.textContent=msg;el.className='status-msg '+(cls||'');}
+function copyId(){const id=document.getElementById('my-id-display').textContent;navigator.clipboard.writeText(id).then(()=>showToast('✅ 번호 복사됨: '+id));}
+let toastTimer;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);}
+window.addEventListener('resize',()=>{if(panelOpen&&currentTab==='wb')resizeWbCanvas();});
+
+// ── 퀴즈 단어 목록 ──
+const QUIZ_WORDS=[
+  '강아지','고양이','코끼리','기린','펭귄','악어','독수리','상어','문어','캥거루',
+  '피자','떡볶이','삼겹살','초밥','라면','치킨','아이스크림','파스타','햄버거','딸기',
+  '의사','소방관','요리사','경찰','선생님','우주비행사','화가','마법사','탐정','농부',
+  '텔레비전','냉장고','자전거','비행기','잠수함','로켓','우산','망원경','피아노','기타',
+  '놀이공원','도서관','수영장','박물관','산','바다','사막','동굴','우주정거장','피라미드',
+  '축구','농구','야구','테니스','수영','스키','태권도','볼링','골프','양궁',
+  '해리포터','슈퍼맨','피카츄','도라에몽','스파이더맨','아이언맨','신데렐라','마리오','배트맨','엘사',
+  '춤추기','달리기','요리하기','노래하기','잠자기','청소하기','그림그리기','낚시','등산','서핑',
 ];
 
-/* ================= STATE ================= */
-let scannedId = null;
-let editingId = null;
-let selectedCategory = "banchan";
-let camStream = null;
-let camRAF = null;
+// 이모지 폴백
+const WORD_EMOJI={
+  '강아지':'🐶','고양이':'🐱','코끼리':'🐘','기린':'🦒','펭귄':'🐧','악어':'🐊',
+  '독수리':'🦅','상어':'🦈','문어':'🐙','캥거루':'🦘',
+  '피자':'🍕','떡볶이':'🍢','삼겹살':'🥩','초밥':'🍣','라면':'🍜','치킨':'🍗',
+  '아이스크림':'🍦','파스타':'🍝','햄버거':'🍔','딸기':'🍓',
+  '의사':'👨‍⚕️','소방관':'👨‍🚒','요리사':'👨‍🍳','경찰':'👮','선생님':'👨‍🏫',
+  '우주비행사':'👨‍🚀','화가':'🎨','마법사':'🧙','탐정':'🕵️','농부':'👨‍🌾',
+  '텔레비전':'📺','냉장고':'🧊','자전거':'🚲','비행기':'✈️','잠수함':'🚢',
+  '로켓':'🚀','우산':'☂️','망원경':'🔭','피아노':'🎹','기타':'🎸',
+  '놀이공원':'🎡','도서관':'📚','수영장':'🏊','박물관':'🏛️',
+  '산':'⛰️','바다':'🌊','사막':'🏜️','동굴':'🕳️','우주정거장':'🛸','피라미드':'🔺',
+  '축구':'⚽','농구':'🏀','야구':'⚾','테니스':'🎾','수영':'🏊',
+  '스키':'⛷️','태권도':'🥋','볼링':'🎳','골프':'⛳','양궁':'🏹',
+  '해리포터':'🧙','슈퍼맨':'🦸','피카츄':'⚡','도라에몽':'🤖','스파이더맨':'🕷️',
+  '아이언맨':'🤖','신데렐라':'👸','마리오':'🍄','배트맨':'🦇','엘사':'❄️',
+  '춤추기':'💃','달리기':'🏃','요리하기':'🍳','노래하기':'🎤','잠자기':'😴',
+  '청소하기':'🧹','그림그리기':'🖌️','낚시':'🎣','등산':'🧗','서핑':'🏄',
+};
 
-/* ================= STORAGE HELPERS (localStorage) ================= */
-const LS_PREFIX = "fridgeapp:";
-
-async function storageGet(key){
+// ── AI 그림 생성 ──
+const quizImgCache={};
+async function generateQuizImage(word){
+  const wrap=document.getElementById('quiz-img-wrap');
+  if(!wrap) return;
+  if(quizImgCache[word]){renderQuizSvg(quizImgCache[word]);return;}
+  wrap.innerHTML='<div class="quiz-img-loading"><div class="quiz-img-spinner"></div><span>그림 불러오는 중...</span></div>';
   try{
-    const raw = localStorage.getItem(LS_PREFIX + key);
-    return raw ? JSON.parse(raw) : null;
-  }catch(e){
-    console.error("storage get failed", e);
-    return null;
-  }
-}
-async function storageSet(key, value){
-  try{
-    localStorage.setItem(LS_PREFIX + key, JSON.stringify(value));
-    return true;
-  }catch(e){
-    console.error("storage set failed", e);
-    toast("저장 공간이 부족하거나 오류가 발생했어요.");
-    return false;
-  }
-}
-async function storageDelete(key){
-  try{
-    localStorage.removeItem(LS_PREFIX + key);
-  }catch(e){ /* ignore */ }
-}
-
-async function loadIndex(){
-  const idx = await storageGet(INDEX_KEY);
-  return Array.isArray(idx) ? idx : [];
-}
-async function saveIndex(idx){
-  await storageSet(INDEX_KEY, idx);
-}
-async function loadItem(id){
-  return await storageGet(ITEM_KEY(id));
-}
-async function saveItem(id, data){
-  await storageSet(ITEM_KEY(id), data);
-}
-async function removeItem(id){
-  await storageDelete(ITEM_KEY(id));
-  const idx = await loadIndex();
-  const next = idx.filter(x => x !== id);
-  await saveIndex(next);
-}
-
-/* ================= TOAST ================= */
-let toastTimer = null;
-function toast(msg){
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=> el.classList.remove("show"), 2200);
-}
-
-/* ================= TAB NAV ================= */
-document.querySelectorAll(".tab-btn").forEach(btn=>{
-  btn.addEventListener("click", ()=> switchView(btn.dataset.view));
-});
-function switchView(name){
-  document.querySelectorAll(".view").forEach(v=> v.classList.remove("active"));
-  document.getElementById("view-"+name).classList.add("active");
-  document.querySelectorAll(".tab-btn").forEach(b=> b.classList.toggle("active", b.dataset.view===name));
-  if(name === "list") renderList();
-  if(name !== "scan") stopCamera();
-  if(name === "scan") resetScanUI();
-}
-
-/* ================= LIST VIEW ================= */
-function catInfo(catId){
-  return CATEGORIES.find(c=>c.id===catId) || CATEGORIES[CATEGORIES.length-1];
-}
-function daysBetween(dateStr){
-  const d = new Date(dateStr);
-  const now = new Date();
-  d.setHours(0,0,0,0); now.setHours(0,0,0,0);
-  return Math.round((d-now)/86400000);
-}
-
-async function renderList(){
-  const idx = await loadIndex();
-  const listEl = document.getElementById("listContainer");
-  const emptyEl = document.getElementById("listEmpty");
-  listEl.innerHTML = "";
-
-  if(idx.length === 0){
-    emptyEl.classList.remove("hidden");
-    document.getElementById("sumTotal").textContent = "0";
-    document.getElementById("sumSoon").textContent = "0";
-    document.getElementById("expireAlert").classList.add("hidden");
-    return;
-  }
-  emptyEl.classList.add("hidden");
-
-  const items = [];
-  for(const id of idx){
-    const it = await loadItem(id);
-    if(it) items.push({id, ...it});
-  }
-  items.sort((a,b)=> (b.addedAt||"").localeCompare(a.addedAt||""));
-
-  let soonCount = 0;
-  const soonNames = [];
-
-  items.forEach(it=>{
-    const cat = catInfo(it.category);
-    const card = document.createElement("div");
-    card.className = "item-card";
-
-    let expiryTagHtml = "";
-    if(it.expiry){
-      const d = daysBetween(it.expiry);
-      if(d < 0){
-        card.classList.add("expired");
-        expiryTagHtml = `<span class="item-tag danger">유통기한 ${Math.abs(d)}일 지남</span>`;
-        soonCount++; soonNames.push(it.name);
-      }else if(d <= 2){
-        card.classList.add("expiring");
-        expiryTagHtml = `<span class="item-tag warn">${d===0?"오늘까지":"D-"+d}</span>`;
-        soonCount++; soonNames.push(it.name);
-      }else{
-        expiryTagHtml = `<span class="item-tag">~${it.expiry}까지</span>`;
-      }
-    }
-
-    const addedDays = it.addedAt ? Math.max(0, -daysBetween(it.addedAt)) : 0;
-
-    card.innerHTML = `
-      <div class="item-top">
-        <div class="item-name-row">
-          <span class="cat-dot" style="background:${cat.color}"></span>
-          <span class="item-name">${escapeHtml(it.name)}</span>
-        </div>
-        <span style="font-size:22px;">${cat.em}</span>
-      </div>
-      <div class="item-meta">${cat.label} · 보관 ${addedDays}일째${it.qty ? " · "+escapeHtml(it.qty) : ""}</div>
-      <div>${expiryTagHtml}<span class="item-tag" style="background:#EFEFEA;color:#6B6B60;">${escapeHtml(it.id)}</span></div>
-      ${it.memo ? `<div class="item-meta" style="margin-top:6px;">📝 ${escapeHtml(it.memo)}</div>` : ""}
-      <div class="item-actions">
-        <button class="btn btn-outline" data-act="edit" data-id="${it.id}">✏️ 수정</button>
-        <button class="btn btn-danger-outline" data-act="empty" data-id="${it.id}">✅ 다 먹음</button>
-      </div>
-    `;
-    listEl.appendChild(card);
-  });
-
-  document.getElementById("sumTotal").textContent = String(items.length);
-  document.getElementById("sumSoon").textContent = String(soonCount);
-
-  const alertEl = document.getElementById("expireAlert");
-  if(soonCount > 0){
-    alertEl.classList.remove("hidden");
-    document.getElementById("expireAlertText").textContent =
-      `${soonNames.slice(0,3).join(", ")}${soonCount>3?` 외 ${soonCount-3}개`:""} 유통기한을 확인해주세요.`;
-  }else{
-    alertEl.classList.add("hidden");
-  }
-
-  listEl.querySelectorAll("button[data-act]").forEach(btn=>{
-    btn.addEventListener("click", async ()=>{
-      const id = btn.dataset.id;
-      if(btn.dataset.act === "empty"){
-        if(confirm("이 음식을 다 먹은 것으로 표시하고 목록에서 지울까요?")){
-          await removeItem(id);
-          toast("비웠어요. 다음에 또 등록해주세요!");
-          renderList();
-        }
-      }else if(btn.dataset.act === "edit"){
-        const it = await loadItem(id);
-        openEditForm(id, it);
-      }
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:
+          `단어 "${word}"를 나타내는 귀여운 SVG 일러스트를 그려줘.\n조건:\n- viewBox="0 0 200 130"\n- 배경 rect 없음 (투명)\n- 밝고 선명한 색상\n- <text><tspan> 금지\n- SVG 코드만 출력`
+        }]
+      })
     });
+    const data=await res.json();
+    const raw=(data.content?.[0]?.text)||'';
+    const m=raw.match(/<svg[\s\S]*?<\/svg>/i);
+    if(m){
+      const safe=m[0].replace(/<script[\s\S]*?<\/script>/gi,'').replace(/on\w+\s*=/gi,'data-x=').replace(/javascript:/gi,'').replace(/<text[\s\S]*?<\/text>/gi,'');
+      quizImgCache[word]=safe;
+      renderQuizSvg(safe);
+    }else{renderEmoji(word);}
+  }catch(e){renderEmoji(word);}
+}
+function renderQuizSvg(svg){
+  const wrap=document.getElementById('quiz-img-wrap');
+  if(!wrap) return;
+  wrap.innerHTML=svg;
+  const el=wrap.querySelector('svg');
+  if(el){el.style.width='100%';el.style.height='100%';}
+}
+function renderEmoji(word){
+  const wrap=document.getElementById('quiz-img-wrap');
+  if(!wrap) return;
+  const em=WORD_EMOJI[word]||'🎯';
+  wrap.innerHTML=`<div style="font-size:80px;line-height:1">${em}</div>`;
+}
+
+// ── 퀴즈 로직 ──
+const QUIZ_TIME=30;
+let quizActive=false,quizIsExplainer=false,quizWord='',quizRound=0,quizScore=0;
+let quizTimer=null,quizSecondsLeft=QUIZ_TIME,usedWords=[];
+
+function startQuiz(){
+  if(quizActive){quizStop();return;}
+  quizActive=true;quizIsExplainer=true;quizScore=0;quizRound=0;usedWords=[];
+  document.getElementById('quiz-score').textContent=0;
+  document.getElementById('btn-quiz').classList.add('active');
+  const qo=document.getElementById('quiz-overlay');
+  qo.style.top='';qo.style.left='';qo.style.bottom='140px';qo.style.transform='translateX(-50%)';
+  sendData({type:'quiz-start'});
+  quizNextWord();
+}
+function quizNextWord(){
+  let pool=QUIZ_WORDS.filter(w=>!usedWords.includes(w));
+  if(pool.length===0){usedWords=[];pool=[...QUIZ_WORDS];}
+  quizWord=pool[Math.floor(Math.random()*pool.length)];
+  usedWords.push(quizWord);
+  quizRound++;quizSecondsLeft=QUIZ_TIME;
+  document.getElementById('quiz-word').textContent=quizWord;
+  document.getElementById('quiz-hint').textContent=`${quizRound}번째 문제 · ${quizWord.length}글자`;
+  document.getElementById('quiz-countdown').textContent=QUIZ_TIME;
+  updateQuizRing(QUIZ_TIME);
+  document.getElementById('quiz-ring').classList.remove('urgent');
+  document.getElementById('quiz-overlay').classList.add('show');
+  // AI 그림 생성
+  generateQuizImage(quizWord);
+  clearInterval(quizTimer);
+  quizTimer=setInterval(()=>{
+    quizSecondsLeft--;
+    document.getElementById('quiz-countdown').textContent=quizSecondsLeft;
+    updateQuizRing(quizSecondsLeft);
+    if(quizSecondsLeft<=10) document.getElementById('quiz-ring').classList.add('urgent');
+    sendData({type:'quiz-tick',round:quizRound,secondsLeft:quizSecondsLeft});
+    if(quizSecondsLeft<=0){quizTimeUp();}
+  },1000);
+}
+function updateQuizRing(s){
+  const offset=163-(163*s/QUIZ_TIME);
+  document.getElementById('quiz-ring').style.strokeDashoffset=offset;
+}
+function quizTimeUp(){clearInterval(quizTimer);quizFlash('⏰');sendData({type:'quiz-timeup',round:quizRound});setTimeout(()=>quizNextWord(),1500);}
+function quizCorrect(){
+  if(!quizActive||!quizIsExplainer) return;
+  clearInterval(quizTimer);quizScore++;
+  document.getElementById('quiz-score').textContent=quizScore;
+  quizFlash('✅');
+  sendData({type:'quiz-correct',round:quizRound,score:quizScore,word:quizWord});
+  setTimeout(()=>quizNextWord(),1200);
+}
+function quizSkip(){
+  if(!quizActive||!quizIsExplainer) return;
+  clearInterval(quizTimer);quizFlash('⏭');
+  sendData({type:'quiz-skip',round:quizRound,word:quizWord});
+  setTimeout(()=>quizNextWord(),900);
+}
+function quizStop(){
+  clearInterval(quizTimer);quizActive=false;
+  document.getElementById('quiz-overlay').classList.remove('show');
+  document.getElementById('quiz-notify').classList.remove('show');
+  document.getElementById('btn-quiz').classList.remove('active');
+  if(quizIsExplainer){
+    sendData({type:'quiz-end',score:quizScore,rounds:quizRound});
+    showToast(`퀴즈 종료 — ${quizRound}문제 중 ${quizScore}개 정답!`);
+    appendChatMsg({type:'chat',name:'🎯 퀴즈',text:`퀴즈 종료! ${quizRound}문제 중 ${quizScore}개 정답`,time:Date.now()},true);
+  }
+  quizIsExplainer=false;
+}
+function quizFlash(emoji){
+  const el=document.getElementById('quiz-flash');
+  el.textContent=emoji;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),700);
+}
+function handleQuizData(data){
+  if(data.type==='quiz-start'){
+    quizActive=true;quizIsExplainer=false;quizRound=0;
+    showToast('🎯 퀴즈 시작! 상대방의 설명을 듣고 맞춰보세요');
+    appendChatMsg({type:'chat',name:'🎯 퀴즈',text:'퀴즈가 시작됩니다! 채팅으로 답을 입력하세요',time:Date.now()},false);
+  }else if(data.type==='quiz-tick'){
+    quizRound=data.round;
+    document.getElementById('quiz-notify').classList.add('show');
+    document.getElementById('quiz-notify-round').textContent=`${data.round}번째 문제`;
+    document.getElementById('quiz-notify-timer').textContent=data.secondsLeft;
+    document.getElementById('quiz-notify-timer').style.color=data.secondsLeft<=10?'#ef4444':'#fff';
+  }else if(data.type==='quiz-correct'){
+    showToast(`✅ 정답! "${data.word}" (${data.score}점)`);
+    appendChatMsg({type:'chat',name:'🎯 퀴즈',text:`정답! 단어는 "${data.word}"이었습니다 🎉 (${data.score}점)`,time:Date.now()},false);
+  }else if(data.type==='quiz-skip'){
+    showToast(`⏭ 넘어감 — 단어: "${data.word}"`);
+    appendChatMsg({type:'chat',name:'🎯 퀴즈',text:`패스! 단어는 "${data.word}"이었습니다`,time:Date.now()},false);
+  }else if(data.type==='quiz-timeup'){
+    showToast('⏰ 시간 초과!');
+  }else if(data.type==='quiz-end'){
+    quizActive=false;
+    document.getElementById('quiz-notify').classList.remove('show');
+    showToast(`퀴즈 종료 — ${data.rounds}문제 중 ${data.score}개 정답!`);
+    appendChatMsg({type:'chat',name:'🎯 퀴즈',text:`퀴즈 종료! 총 ${data.rounds}문제 중 ${data.score}개 정답`,time:Date.now()},false);
+  }
+}
+
+// 퀴즈 오버레이 드래그
+(function(){
+  const el=document.getElementById('quiz-overlay');
+  const handle=el.querySelector('.quiz-header');
+  let dragging=false,ox=0,oy=0;
+  handle.addEventListener('mousedown',e=>{
+    dragging=true;
+    const r=el.getBoundingClientRect();
+    el.style.bottom='auto';el.style.transform='none';
+    el.style.left=r.left+'px';el.style.top=r.top+'px';
+    ox=e.clientX-r.left;oy=e.clientY-r.top;
+    el.classList.add('dragging');e.preventDefault();
   });
-}
-
-function escapeHtml(str){
-  if(!str) return "";
-  return String(str).replace(/[&<>"']/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[s]));
-}
-
-function openEditForm(id, it){
-  switchView("scan");
-  document.getElementById("scanIdle").classList.add("hidden");
-  document.getElementById("scanActive").classList.add("hidden");
-  document.getElementById("manualIdPanel").classList.add("hidden");
-  document.getElementById("scanExistingPanel").classList.add("hidden");
-  document.getElementById("scanPanel").classList.add("hidden");
-
-  editingId = id;
-  scannedId = id;
-  document.getElementById("scanNewIdLabel").textContent = id;
-  document.getElementById("foodNameInput").value = it.name || "";
-  document.getElementById("foodQtyInput").value = it.qty || "";
-  document.getElementById("foodExpiryInput").value = it.expiry || "";
-  selectedCategory = it.category || "banchan";
-  buildCatGrid();
-  document.getElementById("scanNewPanel").classList.remove("hidden");
-}
-
-/* ================= GENERATE VIEW ================= */
-function makeId(){
-  return "FR-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2,6).toUpperCase();
-}
-
-document.getElementById("btnMakeQr").addEventListener("click", ()=>{
-  const id = makeId();
-  const holder = document.getElementById("qrCanvasHolder");
-  holder.innerHTML = "";
-  new QRCode(holder, {
-    text: QR_PREFIX + id,
-    width: 200,
-    height: 200,
-    colorDark: "#1F4438",
-    colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.M
+  document.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    const pr=el.parentElement.getBoundingClientRect();
+    let nx=e.clientX-pr.left-ox,ny=e.clientY-pr.top-oy;
+    nx=Math.max(0,Math.min(nx,pr.width-el.offsetWidth));
+    ny=Math.max(0,Math.min(ny,pr.height-el.offsetHeight));
+    el.style.left=nx+'px';el.style.top=ny+'px';
   });
-  document.getElementById("qrIdText").textContent = id;
-  document.getElementById("qrResult").classList.remove("hidden");
-  document.getElementById("qrResult").dataset.currentId = id;
-});
+  document.addEventListener('mouseup',()=>{dragging=false;el.classList.remove('dragging');});
+})();
 
-document.getElementById("btnDownloadQr").addEventListener("click", ()=>{
-  const holder = document.getElementById("qrCanvasHolder");
-  const canvas = holder.querySelector("canvas");
-  const id = document.getElementById("qrResult").dataset.currentId;
-  if(!canvas) return;
-  const link = document.createElement("a");
-  link.download = "fridge-label-" + id + ".png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-});
-
-document.getElementById("btnPrintQr").addEventListener("click", ()=>{
-  const holder = document.getElementById("qrCanvasHolder");
-  const canvas = holder.querySelector("canvas");
-  const id = document.getElementById("qrIdText").textContent;
-  if(!canvas) return;
-  const dataUrl = canvas.toDataURL("image/png");
-  const w = window.open("", "_blank");
-  w.document.write(`
-    <html><head><title>냉장고 라벨 인쇄</title></head>
-    <body style="text-align:center; font-family:sans-serif; padding:40px;">
-      <img src="${dataUrl}" style="width:220px;height:220px;"/>
-      <p style="font-family:monospace; font-size:14px; margin-top:10px;">${id}</p>
-      <script>window.onload = () => window.print();<\/script>
-    </body></html>
-  `);
-  w.document.close();
-});
-
-/* ================= SCAN VIEW ================= */
-function resetScanUI(){
-  scannedId = null; editingId = null;
-  document.getElementById("scanPanel").classList.remove("hidden");
-  document.getElementById("scanIdle").classList.remove("hidden");
-  document.getElementById("scanActive").classList.add("hidden");
-  document.getElementById("manualIdPanel").classList.add("hidden");
-  document.getElementById("scanExistingPanel").classList.add("hidden");
-  document.getElementById("scanNewPanel").classList.add("hidden");
-}
-
-document.getElementById("btnManualId").addEventListener("click", ()=>{
-  document.getElementById("manualIdPanel").classList.remove("hidden");
-  document.getElementById("manualIdInput").value = "";
-  document.getElementById("manualIdInput").focus();
-});
-document.getElementById("btnManualCancel").addEventListener("click", ()=>{
-  document.getElementById("manualIdPanel").classList.add("hidden");
-});
-document.getElementById("btnManualConfirm").addEventListener("click", ()=>{
-  const val = document.getElementById("manualIdInput").value.trim();
-  if(!val){ toast("라벨 번호를 입력해주세요"); return; }
-  document.getElementById("manualIdPanel").classList.add("hidden");
-  handleScannedId(val);
-});
-
-document.getElementById("fileScanInput").addEventListener("change", (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const img = new Image();
-  const reader = new FileReader();
-  reader.onload = ev => { img.src = ev.target.result; };
-  img.onload = () => {
-    const canvas = document.getElementById("scanCanvas");
-    canvas.width = img.width; canvas.height = img.height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(img, 0, 0);
-    const imageData = ctx.getImageData(0,0,canvas.width, canvas.height);
-    const code = jsQR(imageData.data, canvas.width, canvas.height);
-    if(code && code.data){
-      handleScannedId(code.data);
-    }else{
-      toast("QR 코드를 찾지 못했어요. 다른 사진을 시도해보세요.");
-    }
-    e.target.value = "";
-  };
-  reader.readAsDataURL(file);
-});
-
-document.getElementById("btnStartCam").addEventListener("click", startCamera);
-document.getElementById("btnStopCam").addEventListener("click", stopCamera);
-
-async function startCamera(){
-  try{
-    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-  }catch(e){
-    toast("카메라를 사용할 수 없어요. 사진 업로드나 직접 입력을 이용해주세요.");
-    return;
-  }
-  const video = document.getElementById("scanVideo");
-  video.srcObject = camStream;
-  await video.play();
-  document.getElementById("scanIdle").classList.add("hidden");
-  document.getElementById("scanActive").classList.remove("hidden");
-  scanLoop();
-}
-
-function stopCamera(){
-  if(camRAF) cancelAnimationFrame(camRAF);
-  camRAF = null;
-  if(camStream){
-    camStream.getTracks().forEach(t=>t.stop());
-    camStream = null;
-  }
-  document.getElementById("scanActive").classList.add("hidden");
-  document.getElementById("scanIdle").classList.remove("hidden");
-}
-
-function scanLoop(){
-  const video = document.getElementById("scanVideo");
-  const canvas = document.getElementById("scanCanvas");
-  if(video.readyState === video.HAVE_ENOUGH_DATA){
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0,0,canvas.width, canvas.height);
-    const code = jsQR(imageData.data, canvas.width, canvas.height, { inversionAttempts: "dontInvert" });
-    if(code && code.data){
-      stopCamera();
-      handleScannedId(code.data);
-      return;
-    }
-  }
-  camRAF = requestAnimationFrame(scanLoop);
-}
-
-async function handleScannedId(raw){
-  let id = raw;
-  if(id.startsWith(QR_PREFIX)) id = id.slice(QR_PREFIX.length);
-  id = id.trim();
-  if(!id){ toast("인식된 코드가 올바르지 않아요."); return; }
-
-  scannedId = id;
-  document.getElementById("scanPanel").classList.add("hidden");
-
-  const existing = await loadItem(id);
-  if(existing){
-    document.getElementById("scanExistingPanel").classList.remove("hidden");
-    const cat = catInfo(existing.category);
-    document.getElementById("scanExistingCard").innerHTML = `
-      <div class="item-card">
-        <div class="item-top">
-          <div class="item-name-row">
-            <span class="cat-dot" style="background:${cat.color}"></span>
-            <span class="item-name">${escapeHtml(existing.name)}</span>
-          </div>
-          <span style="font-size:22px;">${cat.em}</span>
-        </div>
-        <div class="item-meta">${cat.label}${existing.qty ? " · "+escapeHtml(existing.qty) : ""}</div>
-        ${existing.expiry ? `<div class="item-meta">유통기한: ${existing.expiry}</div>` : ""}
-        <div class="item-meta" style="margin-top:4px;">라벨 번호: ${escapeHtml(id)}</div>
-      </div>
-    `;
-  }else{
-    editingId = null;
-    document.getElementById("scanNewIdLabel").textContent = id;
-    document.getElementById("foodNameInput").value = "";
-    document.getElementById("foodQtyInput").value = "";
-    document.getElementById("foodExpiryInput").value = "";
-    selectedCategory = "banchan";
-    buildCatGrid();
-    document.getElementById("scanNewPanel").classList.remove("hidden");
-  }
-}
-
-document.getElementById("btnEmptyFromScan").addEventListener("click", async ()=>{
-  if(!scannedId) return;
-  if(confirm("이 통을 비우고 목록에서 지울까요?")){
-    await removeItem(scannedId);
-    toast("비웠어요!");
-    resetScanUI();
-    switchView("list");
-  }
-});
-document.getElementById("btnEditFromScan").addEventListener("click", async ()=>{
-  if(!scannedId) return;
-  const it = await loadItem(scannedId);
-  document.getElementById("scanExistingPanel").classList.add("hidden");
-  editingId = scannedId;
-  document.getElementById("scanNewIdLabel").textContent = scannedId;
-  document.getElementById("foodNameInput").value = it.name || "";
-  document.getElementById("foodQtyInput").value = it.qty || "";
-  document.getElementById("foodExpiryInput").value = it.expiry || "";
-  selectedCategory = it.category || "banchan";
-  buildCatGrid();
-  document.getElementById("scanNewPanel").classList.remove("hidden");
-});
-
-function buildCatGrid(){
-  const grid = document.getElementById("catGrid");
-  grid.innerHTML = "";
-  CATEGORIES.forEach(c=>{
-    const div = document.createElement("div");
-    div.className = "cat-choice" + (c.id === selectedCategory ? " selected" : "");
-    div.innerHTML = `<span class="em">${c.em}</span>${c.label}`;
-    div.addEventListener("click", ()=>{
-      selectedCategory = c.id;
-      grid.querySelectorAll(".cat-choice").forEach(el=>el.classList.remove("selected"));
-      div.classList.add("selected");
-    });
-    grid.appendChild(div);
+// 퀴즈 notify 드래그
+(function(){
+  const el=document.getElementById('quiz-notify');
+  let dragging=false,ox=0,oy=0;
+  el.addEventListener('mousedown',e=>{
+    dragging=true;
+    const r=el.getBoundingClientRect();
+    el.style.bottom='auto';el.style.transform='none';
+    el.style.left=r.left+'px';el.style.top=r.top+'px';
+    ox=e.clientX-r.left;oy=e.clientY-r.top;
+    el.classList.add('dragging');e.preventDefault();
   });
-}
+  document.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    const pr=el.parentElement.getBoundingClientRect();
+    let nx=e.clientX-pr.left-ox,ny=e.clientY-pr.top-oy;
+    nx=Math.max(0,Math.min(nx,pr.width-el.offsetWidth));
+    ny=Math.max(0,Math.min(ny,pr.height-el.offsetHeight));
+    el.style.left=nx+'px';el.style.top=ny+'px';
+  });
+  document.addEventListener('mouseup',()=>{dragging=false;el.classList.remove('dragging');});
+})();
 
-document.getElementById("btnCancelNewItem").addEventListener("click", ()=>{
-  resetScanUI();
-});
+// ── Boot ──
+setLobbyStatus('서버에 연결 중...','');
 
-document.getElementById("btnSaveNewItem").addEventListener("click", async ()=>{
-  const name = document.getElementById("foodNameInput").value.trim();
-  if(!name){ toast("음식 이름을 입력해주세요"); return; }
-  const qty = document.getElementById("foodQtyInput").value.trim();
-  const expiry = document.getElementById("foodExpiryInput").value;
-  const id = editingId || scannedId;
+// 멋진 별명 자동 입력
+const NICKNAMES = [
+  '불꽃검사','천둥기사','은빛늑대','황금독수리','폭풍용사',
+  '신비고양이','붉은여우','철벽장군','달빛사냥꾼','번개표범',
+  '강철호랑이','무적장수','푸른용','흑마검객','빛의기사',
+  '바람의전사','그림자검','최강대장','우주영웅','전설의손',
+  '화염검사','얼음기사','황야의별','하늘의매','거인사냥꾼',
+];
+const nick = NICKNAMES[Math.floor(Math.random() * NICKNAMES.length)];
+document.getElementById('my-name').value = nick;
+myName = nick;
 
-  const existingBefore = await loadItem(id);
-  const data = {
-    id,
-    name,
-    category: selectedCategory,
-    qty,
-    expiry,
-    memo: existingBefore && existingBefore.memo ? existingBefore.memo : "",
-    addedAt: existingBefore && existingBefore.addedAt ? existingBefore.addedAt : new Date().toISOString().slice(0,10)
-  };
-
-  await saveItem(id, data);
-  if(!existingBefore){
-    const idx = await loadIndex();
-    if(!idx.includes(id)){
-      idx.push(id);
-      await saveIndex(idx);
-    }
-  }
-
-  toast(editingId ? "수정했어요!" : "냉장고에 등록했어요!");
-  resetScanUI();
-  switchView("list");
-});
-
-/* ================= INIT ================= */
-buildCatGrid();
-renderList();
+initPeer();
 </script>
 </body>
 </html>
