@@ -68,11 +68,42 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 #call-screen{display:none;height:100vh;overflow:hidden;background:#000;}
 .call-layout{display:flex;height:100%;position:relative;}
 .video-stage{flex:1;position:relative;background:#000;overflow:hidden;}
-.video-grid{display:flex;width:100%;height:100%;}
-.video-cell{flex:1;position:relative;background:#1a1a2e;overflow:hidden;}
-.video-cell+.video-cell{border-left:3px solid #000;}
+.video-grid{display:block;width:100%;height:100%;position:relative;}
+
+/* 상대방 화면 — 전체 */
+.video-cell{position:absolute;inset:0;background:#1a1a2e;overflow:hidden;}
 .video-cell video{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* 내 화면 — 좌측 하단 PIP 30% */
+#local-cell{
+  inset:auto;
+  bottom:140px;   /* 컨트롤바 높이 위 */
+  left:16px;
+  width:30%;
+  height:auto;
+  aspect-ratio:16/9;
+  border:2px solid rgba(255,255,255,.25);
+  border-radius:10px;
+  box-shadow:0 4px 24px rgba(0,0,0,.5);
+  z-index:20;
+  overflow:hidden;
+  background:#1a1a2e;
+  cursor:move;    /* 드래그 이동 힌트 */
+}
+#local-cell video{width:100%;height:100%;object-fit:cover;display:block;}
 #local-vid{transform:scaleX(-1);}
+
+/* 내 화면 라벨 위치 조정 */
+#local-cell .vid-label{
+  bottom:6px;left:8px;
+  font-size:12px;padding:3px 10px;
+}
+
+/* 상대방 라벨 위치 유지 */
+#remote-cell .vid-label{bottom:140px;left:14px;}
+
+/* 상대방 셀 border 제거 */
+.video-cell+.video-cell{border-left:none;}
 .vid-label{position:absolute;bottom:140px;left:14px;background:rgba(0,0,0,.75);
   border-radius:20px;padding:6px 16px;font-size:16px;color:#fff;font-weight:700;
   z-index:5;pointer-events:none;}
@@ -85,8 +116,8 @@ input[type=text]:focus{border-color:var(--accent);background:#fff;}
 .remote-placeholder-call p{font-size:18px;}
 .pip-cam-off{position:absolute;inset:0;background:#1a1a2e;display:none;
   align-items:center;justify-content:center;flex-direction:column;
-  gap:8px;color:rgba(255,255,255,.35);font-size:15px;}
-.pip-cam-off svg{width:32px;opacity:.4;}
+  gap:4px;color:rgba(255,255,255,.35);font-size:11px;}
+.pip-cam-off svg{width:20px;opacity:.4;}
 
 /* HUD */
 .hud-top{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:10px;z-index:10;}
@@ -1170,6 +1201,51 @@ document.getElementById('my-name').value = nick;
 myName = nick;
 
 initPeer();
+
+// ── 내 화면 PIP 드래그 이동 ──
+(function(){
+  const pip = document.getElementById('local-cell');
+  if(!pip) return;
+  let dragging=false, ox=0, oy=0;
+  pip.addEventListener('mousedown', e=>{
+    dragging=true;
+    const r=pip.getBoundingClientRect();
+    ox=e.clientX-r.left; oy=e.clientY-r.top;
+    pip.style.transition='none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!dragging) return;
+    const stage=pip.parentElement.getBoundingClientRect();
+    let x=e.clientX-stage.left-ox;
+    let y=e.clientY-stage.top-oy;
+    x=Math.max(0,Math.min(x, stage.width-pip.offsetWidth));
+    y=Math.max(0,Math.min(y, stage.height-pip.offsetHeight));
+    pip.style.left=x+'px';
+    pip.style.top=y+'px';
+    pip.style.bottom='auto';
+  });
+  document.addEventListener('mouseup', ()=>{ dragging=false; });
+  // 터치 지원
+  pip.addEventListener('touchstart', e=>{
+    const t=e.touches[0];
+    const r=pip.getBoundingClientRect();
+    ox=t.clientX-r.left; oy=t.clientY-r.top;
+    pip.style.transition='none';
+  },{passive:true});
+  document.addEventListener('touchmove', e=>{
+    if(!e.target.closest('#local-cell')) return;
+    const t=e.touches[0];
+    const stage=pip.parentElement.getBoundingClientRect();
+    let x=t.clientX-stage.left-ox;
+    let y=t.clientY-stage.top-oy;
+    x=Math.max(0,Math.min(x, stage.width-pip.offsetWidth));
+    y=Math.max(0,Math.min(y, stage.height-pip.offsetHeight));
+    pip.style.left=x+'px';
+    pip.style.top=y+'px';
+    pip.style.bottom='auto';
+  },{passive:true});
+})();
 </script>
 </body>
 </html>
